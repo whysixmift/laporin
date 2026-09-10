@@ -1,0 +1,8 @@
+/target
+.env
+*.log
+*.pem
+/storage/reports/*
+!/storage/reports/.gitkeep
+/storage/tmp/*
+!/storage/tmp/.gitkeep

@@ -1,0 +1,675 @@
+# OpenAPI 3.1 specification for Laporin (MVP, hardened)
+
+openapi: 3.1.0
+info:
+  title: Laporin API
+  version: 1.0.0
+  description: Backend API for Laporin internship report generator.
+servers:
+  - url: https://api.laporin.example.com/api/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session_id
+  schemas:
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        captcha_token:
+          type: string
+      required: [email, password, captcha_token]
+    RegistrationResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        otp_sent:
+          type: boolean
+      required: [user_id, otp_sent]
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        captcha_token:
+          type: string
+      required: [email, password, captcha_token]
+    LoginResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        expires_at:
+          type: string
+          format: date-time
+      required: [user_id, expires_at]
+    GoogleCallback:
+      type: object
+      properties:
+        code:
+          type: string
+        state:
+          type: string
+      required: [code]
+    StudentInfo:
+      type: object
+      properties:
+        full_name:
+          type: string
+        student_id:
+          type: string
+        school:
+          type: string
+        major:
+          type: string
+          nullable: true
+        semester:
+          type: string
+          nullable: true
+      required: [full_name, student_id, school]
+    InternshipInfo:
+      type: object
+      properties:
+        company_name:
+          type: string
+        company_address:
+          type: string
+          nullable: true
+        department:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        company_supervisor:
+          type: string
+          nullable: true
+        school_supervisor:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+      required: [company_name]
+    ResearchSource:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+          nullable: true
+        fetched_at:
+          type: string
+          format: date-time
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          nullable: true
+      required: [url, fetched_at]
+    ResearchFact:
+      type: object
+      properties:
+        claim:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResearchSource'
+      required: [claim, sources]
+    GeneratedSections:
+      type: object
+      properties:
+        cover:
+          type: string
+        introduction:
+          type: string
+        company_profile:
+          type: string
+        activities:
+          type: string
+        conclusion:
+          type: string
+      required: [cover, introduction, company_profile, activities, conclusion]
+    ReportCreate:
+      type: object
+      properties:
+        title:
+          type: string
+        student:
+          $ref: '#/components/schemas/StudentInfo'
+        internship:
+          $ref: '#/components/schemas/InternshipInfo'
+      required: [title, student, internship]
+    ReportUpdate:
+      type: object
+      properties:
+        student:
+          $ref: '#/components/schemas/StudentInfo'
+        internship:
+          $ref: '#/components/schemas/InternshipInfo'
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, researching, research_completed, generating, generated, preview_ready, payment_pending, paid, unlocked, failed, cancelled, expired]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        student:
+          $ref: '#/components/schemas/StudentInfo'
+        internship:
+          $ref: '#/components/schemas/InternshipInfo'
+        research_facts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResearchFact'
+        generated_sections:
+          $ref: '#/components/schemas/GeneratedSections'
+        generated_doc_path:
+          type: string
+          nullable: true
+      required: [id, title, status, created_at]
+    JobInfo:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [research, generation]
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed, cancelled]
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+        error_code:
+          type: string
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+      required: [job_id, type, status]
+    PaymentCreate:
+      type: object
+      properties:
+        report_id:
+          type: string
+          format: uuid
+        return_url:
+          type: string
+          format: uri
+      required: [report_id, return_url]
+    PaymentResponse:
+      type: object
+      properties:
+        payment_id:
+          type: string
+          format: uuid
+        payment_url:
+          type: string
+          format: uri
+      required: [payment_id, payment_url]
+    Payment:
+      type: object
+      properties:
+        payment_id:
+          type: string
+          format: uuid
+        report_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [created, pending, succeeded, failed, cancelled, expired]
+        amount:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+      required: [payment_id, report_id, status]
+    MayarWebhook:
+      type: object
+      properties:
+        transaction_id:
+          type: string
+        status:
+          type: string
+          enum: [success, failure]
+        amount:
+          type: integer
+        signature:
+          type: string
+        metadata:
+          type: object
+      required: [transaction_id, status, amount, signature]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            request_id:
+              type: string
+          required: [code, message]
+      required: [error]
+    GenericSuccess:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+  responses:
+    BadRequest:
+      description: Invalid request payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required or failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    OK:
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericSuccess'
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user (email/password)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registration created, OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/login:
+    post:
+      summary: Login with email/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login success, session cookie set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/google/oauth_url:
+    get:
+      summary: Get Google OAuth redirect URL
+      responses:
+        '200':
+          description: URL to redirect user to Google
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                required: [url]
+  /auth/google/callback:
+    post:
+      summary: Handle Google OAuth callback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleCallback'
+      responses:
+        '200':
+          $ref: '#/components/responses/OK'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/logout:
+    post:
+      summary: Logout current session
+      security:
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Session revoked
+  /reports:
+    post:
+      summary: Create a new report project (draft)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreate'
+      responses:
+        '201':
+          description: Report created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    get:
+      summary: List user's reports
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by report status
+          schema:
+            type: string
+            enum: [draft, researching, research_completed, generating, generated, preview_ready, payment_pending, paid, unlocked, failed, cancelled, expired]
+      responses:
+        '200':
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /reports/{id}:
+    get:
+      summary: Retrieve a report project
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update mutable fields of a report (e.g., student info)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportUpdate'
+      responses:
+        '200':
+          $ref: '#/components/responses/OK'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /reports/{id}/research/start:
+    post:
+      summary: Kick off AI research for a report
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Research job enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /reports/{id}/research/status:
+    get:
+      summary: Get research job status
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /reports/{id}/generation/start:
+    post:
+      summary: Start DOCX generation (requires completed research)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Generation job enqueued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /reports/{id}/generation/status:
+    get:
+      summary: Get generation job status
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /reports/{id}/preview:
+    get:
+      summary: Download PDF preview of generated report (backend authorized)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PDF preview binary stream
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          description: Not authorized to view preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /payments:
+    post:
+      summary: Create a Mayar payment for a report
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+      responses:
+        '201':
+          description: Payment record created, redirect URL returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /payments/{id}:
+    get:
+      summary: Retrieve payment status
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /webhook/mayar:
+    post:
+      summary: Mayar payment webhook (backend only, no auth)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MayarWebhook'
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          $ref: '#/components/responses/BadRequest'

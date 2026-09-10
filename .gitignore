@@ -1,0 +1,18 @@
+# Rust build output
+/backend/target/
+target/
+
+# Environment and sensitive keys
+.env
+backend/.env
+*.pem
+
+# Logs and scratch files
+*.log
+scratch/
+
+# Storage files (keep directories via .gitkeep)
+/storage/reports/*
+!/storage/reports/.gitkeep
+/storage/tmp/*
+!/storage/tmp/.gitkeep
