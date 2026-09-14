@@ -191,7 +191,7 @@ const { isAuthenticated } = useAuth()
           <div class="text-3xl font-black font-mono text-ink-primary my-1">
             Rp15.000
           </div>
-          <span class="text-xs text-accent-300 block mb-4">Pembayaran via QRIS & VA Bank</span>
+          <span class="text-xs text-accent-300 block mb-3">Pembayaran via QRIS, VA, atau Transfer Langsung</span>
 
           <BaseButton
             v-if="isAuthenticated"
@@ -209,6 +209,17 @@ const { isAuthenticated } = useAuth()
           >
             Daftar Akun Sekarang
           </BaseButton>
+
+          <div class="mt-4 pt-3 border-t border-border-subtle/40 text-[11px] text-ink-muted text-center">
+            <span>Bantuan / Bayar Manual ke Admin:</span>
+            <div class="flex items-center justify-center gap-2 mt-1">
+              <a href="https://wa.me/6285117206413" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline font-mono">WA 1</a>
+              <span>·</span>
+              <a href="https://wa.me/6288809028653" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline font-mono">WA 2</a>
+              <span>·</span>
+              <a href="mailto:miftasigma11@gmail.com" class="text-sky-400 hover:text-sky-300 underline font-mono">Email</a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
