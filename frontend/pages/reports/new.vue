@@ -128,43 +128,44 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-10">
     <!-- Header -->
     <div class="space-y-1">
       <div class="flex items-center gap-2 text-xs text-ink-muted">
         <NuxtLink to="/dashboard" class="hover:text-ink-secondary">Laporan Saya</NuxtLink>
-        <span>/</span>
-        <span class="text-ink-primary">Buat Draf Baru</span>
+        <span class="text-ink-faint">/</span>
+        <span class="text-ink-secondary">Buat Draf</span>
       </div>
-      <h1 class="text-2xl font-bold text-ink-primary">
+      <h1 class="text-2xl font-serif font-normal text-ink-primary">
         Formulir Laporan PKL
       </h1>
-      <p class="text-xs sm:text-sm text-ink-secondary">
-        Lengkapi data berikut untuk menyusun laporan akademik yang terstruktur.
+      <p class="text-xs text-ink-muted">
+        Lengkapi data berikut untuk menyusun naskah akademik yang terstruktur.
       </p>
     </div>
 
-    <!-- Stepper Navigation -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+    <!-- Stepper Navigation (Quiet Editorial Tabs) -->
+    <div class="flex items-center gap-1 border-b border-border/40 pb-3 overflow-x-auto text-xs font-mono">
       <div
         v-for="s in [
-          { num: 1, label: 'Data Siswa' },
-          { num: 2, label: 'Tempat PKL' },
-          { num: 3, label: 'Jurnal Kegiatan' },
+          { num: 1, label: 'Siswa' },
+          { num: 2, label: 'Instansi DU/DI' },
+          { num: 3, label: 'Catatan Kegiatan' },
           { num: 4, label: 'Konfirmasi' }
         ]"
         :key="s.num"
         :class="[
-          'p-2.5 sm:p-3 rounded-lg border flex flex-col gap-0.5 sm:gap-1 transition-colors',
+          'flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors shrink-0',
           step === s.num
-            ? 'bg-surface-elevated border-accent-500/50 text-ink-primary'
+            ? 'text-ink-primary font-bold bg-surface'
             : step > s.num
-              ? 'bg-surface border-border text-ink-secondary'
-              : 'bg-surface-subtle border-border-subtle text-ink-muted'
+              ? 'text-accent-400 font-medium'
+              : 'text-ink-muted'
         ]"
       >
-        <span class="font-mono text-[9px] sm:text-[10px] uppercase font-bold text-accent-400">Langkah 0{{ s.num }}</span>
-        <span class="font-medium text-xs truncate">{{ s.label }}</span>
+        <span>0{{ s.num }}.</span>
+        <span>{{ s.label }}</span>
+        <span v-if="s.num < 4" class="text-ink-faint ml-1">/</span>
       </div>
     </div>
 
@@ -174,11 +175,12 @@ const handleSubmit = async () => {
     </BaseAlert>
 
     <!-- STEP 1: Student Information -->
-    <div v-if="step === 1" class="p-5 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
-      <div class="space-y-1 pb-4 border-b border-border">
-        <h2 class="text-base font-semibold text-ink-primary">1. Data Siswa / Mahasiswa</h2>
-        <p class="text-xs text-ink-secondary">Informasi ini dicantumkan pada lembar sampul dan pengesahan laporan.</p>
+    <div v-if="step === 1" class="p-6 bg-surface rounded border border-border/60 space-y-6">
+      <div class="space-y-0.5 pb-4 border-b border-border/40">
+        <h2 class="text-sm font-semibold text-ink-primary">1. Identitas Siswa / Mahasiswa</h2>
+        <p class="text-xs text-ink-muted">Dicantumkan pada sampul dan lembar pengesahan.</p>
       </div>
+
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="sm:col-span-2">

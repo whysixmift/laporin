@@ -3,106 +3,80 @@ const { isAuthenticated } = useAuth()
 </script>
 
 <template>
-  <div class="space-y-24 sm:space-y-36 pb-28 overflow-hidden text-ink-primary">
+  <div class="space-y-32 sm:space-y-48 pb-32 text-ink-primary">
     <!-- ================================================================= -->
-    <!-- HERO: ATMOSPHERIC GALLERY + SIMPLE PRODUCT MESSAGE                -->
+    <!-- HERO: DIRECT, RESTRAINED, CONFIDENT                               -->
     <!-- ================================================================= -->
-    <section class="relative min-h-[580px] sm:min-h-[660px] flex items-center">
-      <!-- 3D Contemporary Indonesian Geometric Ornament (Atmosphere & Visual Identity) -->
-      <div class="absolute right-0 top-0 w-full sm:w-3/5 h-full opacity-60 sm:opacity-90 pointer-events-auto z-0">
-        <IndonesianOrnamentScene />
-      </div>
-
-      <!-- Subtle Geometric Linework Accent (Woven pattern background grid) -->
-      <div class="absolute inset-0 pointer-events-none opacity-10 bg-[radial-gradient(#8a7a60_1px,transparent_1px)] [background-size:24px_24px]" />
-
-      <!-- Left Hero Typography & Direct Action -->
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 w-full relative z-10">
-        <div class="max-w-xl space-y-6">
-          <div class="inline-flex items-center gap-2.5 text-xs font-mono text-ink-muted">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span class="uppercase tracking-widest text-[11px] text-ink-secondary font-semibold">
-              Platform Penyusun Laporan PKL
-            </span>
-          </div>
-
-          <h1 class="text-4xl sm:text-6xl font-serif font-normal tracking-tight text-ink-primary leading-[1.1]">
-            Laporin<span class="text-emerald-400 font-sans">.</span>
+    <section class="pt-16 sm:pt-28 max-w-5xl mx-auto px-4 sm:px-6">
+      <div class="max-w-2xl space-y-8">
+        <div class="space-y-4">
+          <h1 class="text-4xl sm:text-6xl font-serif font-normal tracking-tight text-ink-primary leading-[1.08]">
+            Laporin<span class="text-accent-500 font-sans">.</span>
           </h1>
 
-          <p class="text-base sm:text-lg text-ink-secondary leading-relaxed font-sans font-normal">
-            Alat bantu menyusun laporan Praktik Kerja Lapangan (PKL) dan magang. Dari catatan kegiatan harian menjadi naskah akademik siap cetak.
+          <p class="text-lg sm:text-xl text-ink-secondary leading-relaxed font-sans font-normal max-w-xl">
+            Alat bantu menyusun laporan Praktik Kerja Lapangan (PKL) dan magang SMK/vokasi.
           </p>
+        </div>
 
-          <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-            <BaseButton
-              v-if="isAuthenticated"
-              to="/reports/new"
-              size="lg"
-              variant="primary"
-              class="w-full sm:w-auto justify-center font-semibold px-8 shadow-elevated"
-            >
-              <template #leading>
-                <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-              </template>
-              Buat Laporan Baru
-            </BaseButton>
+        <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <NuxtLink
+            v-if="isAuthenticated"
+            to="/reports/new"
+            class="inline-flex items-center justify-center px-6 py-3 rounded bg-ink-primary text-canvas hover:bg-white font-medium text-sm transition-all shadow-subtle text-center"
+          >
+            Buat Laporan
+          </NuxtLink>
 
-            <BaseButton
-              v-else
-              to="/register"
-              size="lg"
-              variant="primary"
-              class="w-full sm:w-auto justify-center font-semibold px-8 shadow-elevated"
-            >
-              Mulai Susun Laporan
-            </BaseButton>
+          <NuxtLink
+            v-else
+            to="/register"
+            class="inline-flex items-center justify-center px-6 py-3 rounded bg-ink-primary text-canvas hover:bg-white font-medium text-sm transition-all shadow-subtle text-center"
+          >
+            Buat Laporan
+          </NuxtLink>
 
-            <NuxtLink
-              to="#cara-kerja"
-              class="text-xs sm:text-sm font-mono text-ink-muted hover:text-ink-primary transition-colors flex items-center justify-center sm:justify-start gap-1.5 py-2.5"
-            >
-              <span>Pelajari Alur Kerja</span>
-              <span>↓</span>
-            </NuxtLink>
-          </div>
+          <NuxtLink
+            to="#alur-kerja"
+            class="inline-flex items-center justify-center px-4 py-3 text-xs font-mono text-ink-muted hover:text-ink-primary transition-colors text-center"
+          >
+            Lihat cara kerja ↓
+          </NuxtLink>
+        </div>
 
-          <div class="pt-4 border-t border-border/60 flex items-center gap-4 text-xs font-mono text-ink-muted">
-            <span>Rp15.000 / file Word (.docx)</span>
-            <span>·</span>
-            <span>Pratinjau gratis</span>
-          </div>
+        <div class="pt-6 border-t border-border/40 flex items-center gap-4 text-xs font-mono text-ink-muted">
+          <span>Rp15.000 / naskah Word (.docx)</span>
+          <span class="text-ink-faint">·</span>
+          <span>Pratinjau draf gratis</span>
         </div>
       </div>
     </section>
 
     <!-- ================================================================= -->
-    <!-- WORKFLOW DEMO: REAL DEMONSTRATION (NO FAKE MARKETING CARDS)       -->
+    <!-- PRODUCT STORY: REAL TRANSFORMATION (NO FAKE SAAS CARDS)          -->
     <!-- ================================================================= -->
-    <section id="cara-kerja" class="max-w-5xl mx-auto px-4 sm:px-6 space-y-16">
-      <div class="space-y-2 border-b border-border/80 pb-4">
-        <span class="text-xs font-mono text-emerald-400 font-bold uppercase tracking-widest">ALUR DOKUMEN</span>
+    <section id="alur-kerja" class="max-w-5xl mx-auto px-4 sm:px-6 space-y-20">
+      <div class="space-y-2 border-b border-border/40 pb-4">
+        <span class="text-[11px] font-mono text-ink-muted uppercase tracking-wider">Transformasi Dokumen</span>
         <h2 class="text-2xl sm:text-3xl font-serif font-normal text-ink-primary">
-          Bagaimana Laporin bekerja
+          Dari catatan mentah menjadi naskah baku
         </h2>
       </div>
 
-      <!-- Step 01 -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        <div class="md:col-span-4 space-y-1">
-          <span class="text-xs font-mono text-ink-muted">01 / INPUT</span>
-          <h3 class="text-lg font-bold text-ink-primary">Tulis catatan harian kamu</h3>
+      <!-- Step 01: Raw Student Notes -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        <div class="md:col-span-4 space-y-2">
+          <span class="text-xs font-mono text-ink-muted">01</span>
+          <h3 class="text-base font-semibold text-ink-primary">Catatan harian siswa</h3>
           <p class="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-            Cukup masukkan nama tempat magang dan ringkasan apa saja yang kamu kerjakan dalam bahasa santai sehari-hari.
+            Cukup tuliskan nama tempat magang dan ringkasan apa saja yang kamu kerjakan dalam bahasa sehari-hari.
           </p>
         </div>
 
-        <div class="md:col-span-8 p-5 bg-[#121620] border border-border rounded-xl font-mono text-xs text-ink-secondary space-y-2 shadow-subtle">
-          <div class="text-[11px] text-ink-muted flex items-center justify-between pb-2 border-b border-border-subtle">
-            <span>Contoh Catatan Masukan Siswa:</span>
-            <span class="text-amber-400">Bahasa Sehari-hari</span>
+        <div class="md:col-span-8 p-5 bg-surface rounded border border-border/60 font-mono text-xs text-ink-secondary space-y-3">
+          <div class="flex items-center justify-between text-[11px] text-ink-muted border-b border-border/40 pb-2">
+            <span>Input Praktikan:</span>
+            <span>Bahasa Santai</span>
           </div>
           <p class="text-ink-primary leading-relaxed">
             "Minggu ke-3: Gw disuruh instalasi ulang 5 PC kantor pake OS Windows 11, abis itu konfigurasi IP address lokal sama setting sharing printer biar divisi accounting bisa ngeprint bareng."
@@ -110,42 +84,42 @@ const { isAuthenticated } = useAuth()
         </div>
       </div>
 
-      <!-- Step 02 -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        <div class="md:col-span-4 space-y-1">
-          <span class="text-xs font-mono text-ink-muted">02 / RISET</span>
-          <h3 class="text-lg font-bold text-ink-primary">Profil perusahaan diriset otomatis</h3>
+      <!-- Step 02: Research Extraction -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        <div class="md:col-span-4 space-y-2">
+          <span class="text-xs font-mono text-ink-muted">02</span>
+          <h3 class="text-base font-semibold text-ink-primary">Riset profil instansi</h3>
           <p class="text-xs sm:text-sm text-ink-secondary leading-relaxed">
             Laporin menelusuri data resmi instansi untuk melengkapi Bab II: sejarah perusahaan, visi misi, dan struktur kerja.
           </p>
         </div>
 
-        <div class="md:col-span-8 p-5 bg-[#121620] border border-border rounded-xl font-mono text-xs text-ink-secondary space-y-2 shadow-subtle">
-          <div class="text-[11px] text-emerald-400 font-bold flex items-center justify-between pb-2 border-b border-border-subtle">
-            <span>Hasil Ekstraksi Data Perusahaan:</span>
-            <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-[10px]">Terverifikasi</span>
+        <div class="md:col-span-8 p-5 bg-surface rounded border border-border/60 text-xs space-y-3">
+          <div class="flex items-center justify-between text-[11px] font-mono text-ink-muted border-b border-border/40 pb-2">
+            <span>Ekstraksi Data Perusahaan:</span>
+            <span class="text-accent-400">Terverifikasi</span>
           </div>
-          <div class="space-y-1.5 text-ink-primary font-sans text-xs leading-relaxed">
-            <div><strong>Nama Instansi:</strong> PT Teknologi Nusantara Mandiri</div>
-            <div><strong>Bidang Usaha:</strong> Infrastruktur Jaringan & Pengembangan Perangkat Lunak</div>
-            <div><strong>Visi & Misi:</strong> Menyediakan konektivitas stabil dan sistem manajemen terintegrasi.</div>
+          <div class="space-y-1.5 text-ink-secondary leading-relaxed">
+            <div><span class="text-ink-muted font-mono">Nama:</span> <strong class="text-ink-primary">PT Teknologi Nusantara Mandiri</strong></div>
+            <div><span class="text-ink-muted font-mono">Bidang:</span> Infrastruktur Jaringan & Rekayasa Perangkat Lunak</div>
+            <div><span class="text-ink-muted font-mono">Visi:</span> Mengembangkan konektivitas digital terintegrasi untuk industri nasional.</div>
           </div>
         </div>
       </div>
 
-      <!-- Step 03 -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        <div class="md:col-span-4 space-y-1">
-          <span class="text-xs font-mono text-ink-muted">03 / FORMULASI</span>
-          <h3 class="text-lg font-bold text-ink-primary">Rapikan jadi naskah akademik utuh</h3>
+      <!-- Step 03: Final Academic Formulation -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        <div class="md:col-span-4 space-y-2">
+          <span class="text-xs font-mono text-ink-muted">03</span>
+          <h3 class="text-base font-semibold text-ink-primary">Naskah laporan utuh</h3>
           <p class="text-xs sm:text-sm text-ink-secondary leading-relaxed">
             Seluruh bab diformulasikan dengan tata bahasa baku PUEBI/EYD, nomor halaman, dan margin 4-4-3-3 standar.
           </p>
         </div>
 
-        <div class="md:col-span-8 p-6 bg-[#0c0f14] border border-border-strong rounded-xl font-serif text-xs text-ink-primary leading-relaxed space-y-3 shadow-doc text-justify">
-          <div class="font-sans text-[10px] font-bold text-emerald-400 uppercase tracking-wider font-mono">
-            Kutipan Bab III (Pelaksanaan Praktik Kerja)
+        <div class="md:col-span-8 p-6 bg-[#0f1115] rounded border border-border/80 font-serif text-xs text-ink-primary leading-relaxed space-y-3 text-justify shadow-subtle">
+          <div class="font-sans text-[10px] font-mono text-accent-400 uppercase tracking-wider">
+            Kutipan Bab III — Pelaksanaan Praktik Kerja
           </div>
           <p class="indent-6">
             3.2.1 Pemeliharaan Perangkat Keras dan Konfigurasi Jaringan Lokal<br>
@@ -156,98 +130,88 @@ const { isAuthenticated } = useAuth()
     </section>
 
     <!-- ================================================================= -->
-    <!-- ACADEMIC SPECIFICATION: PURE EDITORIAL PRECISION                  -->
+    <!-- SPECIFICATIONS: EDITORIAL RESTRAINT                               -->
     <!-- ================================================================= -->
     <section class="max-w-5xl mx-auto px-4 sm:px-6">
-      <div class="p-8 sm:p-10 bg-[#121620] border border-border rounded-2xl space-y-6 shadow-subtle">
+      <div class="border-t border-border/40 pt-12 space-y-8">
         <div class="space-y-1">
-          <span class="text-xs font-mono text-emerald-400 font-bold uppercase">STANDAR PENULISAN</span>
+          <span class="text-[11px] font-mono text-ink-muted uppercase tracking-wider">Standar Dokumen</span>
           <h3 class="text-xl sm:text-2xl font-serif font-normal text-ink-primary">
-            Spesifikasi Dokumen Laporan PKL
+            Spesifikasi format laporan PKL
           </h3>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-          <div class="space-y-1 p-3.5 bg-surface rounded-lg border border-border/60">
-            <div class="font-mono text-ink-muted">Margin Halaman</div>
-            <div class="font-bold text-ink-primary text-sm font-mono">4-4-3-3 cm</div>
-            <div class="text-ink-secondary text-[11px]">Kiri 4cm (ruang jilid), Atas 4cm, Kanan 3cm, Bawah 3cm.</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-xs">
+          <div class="space-y-1">
+            <div class="font-mono text-ink-muted text-[11px]">Margin Halaman</div>
+            <div class="text-ink-primary font-medium">4-4-3-3 cm</div>
+            <div class="text-ink-muted text-[11px] leading-relaxed">Kiri 4cm (jilid), Atas 4cm, Kanan 3cm, Bawah 3cm.</div>
           </div>
 
-          <div class="space-y-1 p-3.5 bg-surface rounded-lg border border-border/60">
-            <div class="font-mono text-ink-muted">Tipografi</div>
-            <div class="font-bold text-ink-primary text-sm font-serif">Times New Roman</div>
-            <div class="text-ink-secondary text-[11px]">Ukuran 12pt, spasi 1.5, dan indentasi paragraf baku.</div>
+          <div class="space-y-1">
+            <div class="font-mono text-ink-muted text-[11px]">Tipografi</div>
+            <div class="text-ink-primary font-medium font-serif">Times New Roman</div>
+            <div class="text-ink-muted text-[11px] leading-relaxed">Ukuran 12pt, spasi 1.5, dan perataan teks justified.</div>
           </div>
 
-          <div class="space-y-1 p-3.5 bg-surface rounded-lg border border-border/60">
-            <div class="font-mono text-ink-muted">Kelengkapan Bab</div>
-            <div class="font-bold text-ink-primary text-sm font-mono">Bab I s.d. Bab IV</div>
-            <div class="text-ink-secondary text-[11px]">Cover, Lembar Pengesahan, Bab I-IV, dan Lampiran.</div>
+          <div class="space-y-1">
+            <div class="font-mono text-ink-muted text-[11px]">Kelengkapan Bab</div>
+            <div class="text-ink-primary font-medium">Bab I s.d. Bab IV</div>
+            <div class="text-ink-muted text-[11px] leading-relaxed">Cover, lembar pengesahan, pendahuluan, profil, isi, & saran.</div>
           </div>
 
-          <div class="space-y-1 p-3.5 bg-surface rounded-lg border border-border/60">
-            <div class="font-mono text-ink-muted">Format Ekspor</div>
-            <div class="font-bold text-ink-primary text-sm font-mono">Word (.docx) & PDF</div>
-            <div class="text-ink-secondary text-[11px]">Dapat diedit bebas di Microsoft Word atau Google Docs.</div>
+          <div class="space-y-1">
+            <div class="font-mono text-ink-muted text-[11px]">Format Berkas</div>
+            <div class="text-ink-primary font-medium">Word (.docx)</div>
+            <div class="text-ink-muted text-[11px] leading-relaxed">Dapat diedit bebas di Microsoft Word dan Google Docs.</div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ================================================================= -->
-    <!-- PRICING & DIRECT ACCESS: TRANSPARENT & QUIET                     -->
+    <!-- PRICING & CALL TO ACTION: HONEST & QUIET                          -->
     <!-- ================================================================= -->
     <section class="max-w-5xl mx-auto px-4 sm:px-6">
-      <div class="p-8 sm:p-12 bg-gradient-to-r from-[#141924] via-[#10141d] to-[#0c0e14] border border-border-strong rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-8 shadow-doc">
+      <div class="p-8 sm:p-12 bg-surface rounded border border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-8">
         <div class="space-y-3 max-w-lg">
-          <span class="text-xs font-mono text-emerald-400 font-bold uppercase">AKSES DOKUMEN</span>
+          <span class="text-[11px] font-mono text-ink-muted uppercase tracking-wider">Akses Dokumen</span>
           <h3 class="text-2xl sm:text-3xl font-serif font-normal text-ink-primary leading-snug">
-            Periksa seluruh draf secara gratis. Buka kunci dokumen saat siap cetak.
+            Periksa draf secara gratis. Unduh saat siap cetak.
           </h3>
           <p class="text-xs sm:text-sm text-ink-secondary leading-relaxed font-sans">
-            Kamu dapat meninjau seluruh isi bab laporan terlebih dahulu. Pembayaran Rp15.000 hanya dilakukan saat mengunduh berkas Microsoft Word asli tanpa watermark.
+            Kamu dapat meninjau seluruh isi bab laporan terlebih dahulu. Pembayaran hanya dilakukan saat mengunduh berkas Microsoft Word asli tanpa watermark.
           </p>
         </div>
 
-        <div class="p-6 bg-[#0f131a] rounded-xl border border-border text-center sm:text-right shrink-0 w-full md:w-72 space-y-4">
+        <div class="shrink-0 space-y-4 md:text-right">
           <div>
             <span class="text-[11px] font-mono text-ink-muted block uppercase">Biaya Unduh</span>
             <div class="text-3xl font-black font-mono text-ink-primary my-1">
               Rp15.000
             </div>
-            <span class="text-xs text-emerald-400 font-sans">Sekali bayar · Tanpa langganan</span>
+            <span class="text-xs text-ink-muted">Sekali bayar · Tanpa langganan</span>
           </div>
 
-          <BaseButton
-            v-if="isAuthenticated"
-            to="/reports/new"
-            variant="primary"
-            size="lg"
-            class="w-full justify-center font-semibold"
-          >
-            Buat Laporan Sekarang
-          </BaseButton>
-          <BaseButton
-            v-else
-            to="/register"
-            variant="primary"
-            size="lg"
-            class="w-full justify-center font-semibold"
-          >
-            Daftar & Mulai
-          </BaseButton>
-
-          <div class="pt-3 border-t border-border text-[11px] text-ink-muted text-center space-y-1">
-            <div>Bantuan / Transfer Manual:</div>
-            <div class="flex items-center justify-center gap-2 font-mono">
-              <a href="https://wa.me/6285117206413" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:underline">0851-1720-6413</a>
-              <span>·</span>
-              <a href="https://wa.me/6288809028653" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:underline">0888-0902-8653</a>
-            </div>
+          <div>
+            <NuxtLink
+              v-if="isAuthenticated"
+              to="/reports/new"
+              class="inline-flex items-center justify-center px-6 py-2.5 rounded bg-ink-primary text-canvas hover:bg-white font-medium text-xs transition-all text-center w-full md:w-auto"
+            >
+              Mulai Susun Laporan
+            </NuxtLink>
+            <NuxtLink
+              v-else
+              to="/register"
+              class="inline-flex items-center justify-center px-6 py-2.5 rounded bg-ink-primary text-canvas hover:bg-white font-medium text-xs transition-all text-center w-full md:w-auto"
+            >
+              Mulai Susun Laporan
+            </NuxtLink>
           </div>
         </div>
       </div>
     </section>
   </div>
 </template>
+

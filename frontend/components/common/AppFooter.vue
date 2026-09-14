@@ -1,37 +1,42 @@
 <template>
-  <footer class="border-t border-border mt-auto py-8 bg-surface-subtle/30 text-xs text-ink-muted">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-      <div class="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
-        <span class="font-bold text-ink-secondary">Laporin</span>
-        <span class="hidden sm:inline">—</span>
-        <span>Generator Laporan PKL & Magang Terstruktur</span>
+  <footer class="border-t border-border/30 mt-auto py-12 text-xs text-ink-muted">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div class="space-y-1">
+        <div class="flex items-center gap-2">
+          <span class="font-serif text-sm text-ink-primary">Laporin<span class="text-accent-500 font-sans">.</span></span>
+          <span class="text-ink-faint">·</span>
+          <span class="text-ink-secondary text-xs">Penyusun Laporan PKL & Magang</span>
+        </div>
+        <p class="text-[11px] text-ink-muted">
+          Format naskah akademik terstruktur untuk SMK dan Pendidikan Vokasi.
+        </p>
       </div>
 
-      <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-center">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-xs text-ink-secondary font-mono">
         <div class="flex items-center gap-2">
-          <span class="text-ink-muted">Kontak Admin / Bayar Langsung:</span>
+          <span class="text-ink-muted">Bantuan & Konfirmasi:</span>
           <a
             href="https://wa.me/6285117206413"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-emerald-400 hover:text-emerald-300 font-mono underline underline-offset-2"
+            class="text-ink-primary hover:text-accent-400 transition-colors underline underline-offset-4"
           >
-            WA: 0851-1720-6413
+            0851-1720-6413
           </a>
-          <span>/</span>
+          <span class="text-ink-faint">/</span>
           <a
             href="https://wa.me/6288809028653"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-emerald-400 hover:text-emerald-300 font-mono underline underline-offset-2"
+            class="text-ink-primary hover:text-accent-400 transition-colors underline underline-offset-4"
           >
             0888-0902-8653
           </a>
         </div>
-        <span class="text-ink-faint hidden sm:inline">|</span>
+        <span class="text-ink-faint hidden sm:inline">·</span>
         <a
           href="mailto:miftasigma11@gmail.com"
-          class="text-sky-400 hover:text-sky-300 font-mono underline underline-offset-2"
+          class="text-ink-muted hover:text-ink-primary transition-colors underline underline-offset-4"
         >
           miftasigma11@gmail.com
         </a>
@@ -39,3 +44,4 @@
     </div>
   </footer>
 </template>
+

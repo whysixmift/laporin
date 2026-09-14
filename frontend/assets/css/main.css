@@ -8,8 +8,8 @@
   }
 
   body {
-    @apply bg-canvas text-ink-primary font-sans antialiased selection:bg-accent-500/20 selection:text-accent-200 min-h-screen;
-    background-color: #0c0e12;
+    @apply bg-canvas text-ink-primary font-sans antialiased selection:bg-accent-600/30 selection:text-ink-primary min-h-screen;
+    background-color: #090a0c;
   }
 
   /* Custom scrollbar */
@@ -18,23 +18,23 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0c0e12;
+    background: #090a0c;
   }
   ::-webkit-scrollbar-thumb {
-    background: #242c39;
+    background: #20242b;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #3f4c60;
+    background: #3b424e;
   }
 }
 
-/* Document sheet styling */
+/* Document sheet styling (Realistic academic paper in dark room) */
 .doc-sheet {
-  background-color: #12151c;
-  border: 1px solid #28303f;
-  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  font-family: 'Newsreader', Georgia, serif;
+  background-color: #101216;
+  border: 1px solid #232730;
+  box-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  font-family: 'Newsreader', 'Times New Roman', Georgia, serif;
 }
 
 .doc-sheet-page {
@@ -48,7 +48,8 @@
     -45deg,
     transparent,
     transparent 80px,
-    rgba(239, 68, 68, 0.035) 80px,
-    rgba(239, 68, 68, 0.035) 160px
+    rgba(239, 68, 68, 0.03) 80px,
+    rgba(239, 68, 68, 0.03) 160px
   );
 }
+
