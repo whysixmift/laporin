@@ -16,3 +16,22 @@ scratch/
 !/storage/reports/.gitkeep
 /storage/tmp/*
 !/storage/tmp/.gitkeep
+
+# Node & Nuxt frontend
+node_modules/
+frontend/node_modules/
+.output/
+frontend/.output/
+.nuxt/
+frontend/.nuxt/
+.nitro/
+frontend/.nitro/
+dist/
+frontend/dist/
+test-results/
+frontend/test-results/
+playwright-report/
+frontend/playwright-report/
+blob-report/
+frontend/blob-report/
+

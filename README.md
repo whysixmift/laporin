@@ -1,8 +1,8 @@
-# Laporin (Backend) 📋⚡
+# Laporin (Full Stack) 📋⚡
 
 > High-reliability, automated internship report generator (*Laporan PKL / Magang*) engineered for Indonesian students (SMK, Politeknik, Universitas).
 
-Laporin automates the end-to-end generation of standardized 5-chapter academic internship reports. It leverages an SSRF-protected web crawler, 9Router LLM structured extraction, a PostgreSQL `FOR UPDATE SKIP LOCKED` worker queue, DOCX placeholder substitution, headless PDF preview rendering, and Mayar payment gateway integration.
+Laporin automates the end-to-end generation of standardized academic internship reports. It leverages a modern Nuxt 3 frontend with dark-first typography and document-first preview, an SSRF-protected web crawler, 9Router LLM structured extraction, a PostgreSQL `FOR UPDATE SKIP LOCKED` worker queue, DOCX placeholder substitution, headless PDF preview rendering, and Mayar payment gateway integration.
 
 ---
 
@@ -12,14 +12,24 @@ Laporin automates the end-to-end generation of standardized 5-chapter academic i
                                   ┌───────────────────────────┐
                                   │       Client Browser      │
                                   └─────────────┬─────────────┘
+                                                │ HTTP / Vue 3
+                                                ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                Nuxt 3 Frontend (Port 3000)                              │
+│                                                                                         │
+│  - Dark-First Visual Identity & Academic Document Preview                               │
+│  - Multi-step Report Wizard & 12-state Lifecycle Management                             │
+│  - Session-authenticated fetch wrapper with 429 rate limit countdown                    │
+│  - Nitro reverse proxy for `/api/v1/**`                                                 │
+└───────────────────────────────────────────────┬─────────────────────────────────────────┘
                                                 │ REST API / Session Cookie
                                                 ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                  Laporin Backend (Axum)                                 │
+│                                Laporin Backend Axum (Port 8080)                         │
 │                                                                                         │
 │  ┌───────────────────────┐  ┌────────────────────────┐  ┌────────────────────────────┐  │
 │  │   Auth & Middleware   │  │   Report CRUD Routes   │  │   Mayar Webhook Handler    │  │
-│  │ (Argon2id, OAuth, OTP)│  │ (Bab I - Bab V Schema) │  │  (HMAC-SHA256 Signature)   │  │
+│  │ (Argon2id, OAuth, OTP)│  │ (Bab I - Bab IV Schema)│  │  (HMAC-SHA256 Signature)   │  │
 │  └───────────┬───────────┘  └───────────┬────────────┘  └─────────────┬──────────────┘  │
 │              │                          │                             │                 │
 │              ▼                          ▼                             ▼                 │
@@ -86,7 +96,7 @@ Laporin automates the end-to-end generation of standardized 5-chapter academic i
 ```
 laporin/
 ├── .agents/skills/            # Agent skills and engineering guidelines
-├── backend/
+├── backend/                   # Axum Rust Backend (Port 8080)
 │   ├── Cargo.toml             # Rust dependencies & metadata
 │   ├── .env.example           # Backend environment configuration template
 │   ├── migrations/            # SQLx database migration scripts
@@ -103,14 +113,14 @@ laporin/
 │   │   ├── storage/           # Local file storage, path traversal guard, disk quotas
 │   │   ├── workers/           # Background job processors (Research, Generation, Cleanup)
 │   │   └── api/routes/        # REST controllers (Auth, Reports, Research, Generation, Payments, Webhook)
-│   └── tests/                 # Integration test suite
-│       ├── auth_tests.rs
-│       ├── report_tests.rs
-│       ├── research_tests.rs
-│       ├── generation_preview_tests.rs
-│       ├── payment_webhook_tests.rs
-│       ├── download_entitlement_tests.rs
-│       └── e2e_flow_tests.rs
+│   └── tests/                 # Integration test suite (10/10 passed)
+├── frontend/                  # Nuxt 3 / Vue 3 Frontend (Port 3000)
+│   ├── components/            # Reusable UI components & document viewers
+│   ├── composables/           # Type-safe API clients, auth, jobs, payment
+│   ├── pages/                 # Routing (Landing, Auth, Dashboard, Report Workspace, Preview)
+│   ├── types/                 # TypeScript interfaces matching OpenAPI 3.1
+│   ├── assets/css/            # Dark-first tokens & print stylesheet
+│   └── tests/                 # Playwright E2E & Full Lifecycle suite (12/12 passed)
 ├── docs/                      # Architectural & frozen contract specifications
 │   ├── openapi.yaml           # OpenAPI 3.1.0 contract
 │   ├── database-schema.md     # PostgreSQL ER schema and indexes
@@ -164,23 +174,34 @@ sqlx migrate run
 cargo build
 ```
 
-### 5. Run the Server
+### 5. Run the Backend Server
 ```bash
+cd backend
 cargo run
 ```
-The server will start listening at `http://127.0.0.1:3000`.
+The backend server will start listening at `http://127.0.0.1:8080`.
+
+### 6. Run the Frontend App
+```bash
+cd frontend
+pnpm install
+pnpm run build
+node .output/server/index.mjs  # Production server on http://127.0.0.1:3000
+# or for development:
+# pnpm run dev
+```
 
 ---
 
 ## 🧪 Running Automated Tests
 
-Run the complete integration and unit test suite:
+### 1. Backend Integration Tests (Rust)
 ```bash
 cd backend
 cargo test -- --nocapture
 ```
 
-The test suite covers:
+The backend test suite covers:
 - **Authentication & Sessions**: Registration, Argon2id verification, Google OAuth linking, OTP generation and attempt throttling, session cookie issuance and revocation.
 - **Report CRUD**: Report creation, multi-chapter retrieval, validation, and multi-tenant isolation.
 - **SSRF Defense**: Strict rejection of private loopback, 10.x, 172.x, 192.x, AWS metadata endpoints, and DNS rebinding attacks.
@@ -189,6 +210,20 @@ The test suite covers:
 - **Payment & Webhooks**: Mayar payment creation, HMAC-SHA256 signature verification, and duplicate webhook idempotency.
 - **Entitlement Download**: 403 Forbidden enforcement on unpaid reports, 200 OK binary stream on unlocked reports.
 - **End-to-End User Flow**: Full multi-step simulation from user signup to final report download.
+
+### 2. Frontend E2E & Lifecycle Tests (Playwright)
+```bash
+cd frontend
+pnpm exec playwright test
+```
+
+The frontend Playwright suite verifies:
+- **Landing & Marketing**: Academic value proposition, chapter preview showcase, and Rp15.000 pricing clarity.
+- **Authentication Flow**: Account creation, bot protection CAPTCHA, error alerts, and login session initialization.
+- **Report Management**: Empty states, active reports grid, status indicators, and 4-step wizard.
+- **Interactive Workspace**: Draft edits, live polling status during AI research & document compilation.
+- **Academic Preview & Paywall**: Formatted A4 sheet rendering, watermarked preview, Mayar checkout modal, and DOCX binary download.
+- **Cross-Device Responsiveness**: Full desktop and mobile viewports (iPhone / Android).
 
 ---
 

@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-canvas text-ink-primary font-sans antialiased selection:bg-accent-500/20 selection:text-accent-200 min-h-screen;
+    background-color: #0c0e12;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0c0e12;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #242c39;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f4c60;
+  }
+}
+
+/* Document sheet styling */
+.doc-sheet {
+  background-color: #12151c;
+  border: 1px solid #28303f;
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  font-family: 'Newsreader', Georgia, serif;
+}
+
+.doc-sheet-page {
+  aspect-ratio: 1 / 1.414; /* A4 aspect ratio */
+  min-height: 700px;
+}
+
+/* Watermark overlay styling */
+.doc-watermark {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 80px,
+    rgba(239, 68, 68, 0.035) 80px,
+    rgba(239, 68, 68, 0.035) 160px
+  );
+}
