@@ -1,4 +1,5 @@
 use crate::domain::report::{GeneratedSections, InternshipInfo, Report, StudentInfo};
+use chrono::{Datelike, NaiveDate};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Cursor, Read, Write};
@@ -7,6 +8,32 @@ use zip::write::FileOptions;
 use zip::{ZipArchive, ZipWriter};
 
 pub struct DocxService;
+
+const DEFAULT_EMBEDDED_TEMPLATE: &[u8] = include_bytes!("../../templates/report-template-v1.docx");
+
+fn format_indo_date(date: Option<NaiveDate>) -> String {
+    match date {
+        Some(d) => {
+            let month_name = match d.month() {
+                1 => "Januari",
+                2 => "Februari",
+                3 => "Maret",
+                4 => "April",
+                5 => "Mei",
+                6 => "Juni",
+                7 => "Juli",
+                8 => "Agustus",
+                9 => "September",
+                10 => "Oktober",
+                11 => "November",
+                12 => "Desember",
+                _ => "",
+            };
+            format!("{} {} {}", d.day(), month_name, d.year())
+        }
+        None => "-".to_string(),
+    }
+}
 
 impl DocxService {
     pub fn ensure_default_template(
@@ -20,63 +47,7 @@ impl DocxService {
             std::fs::create_dir_all(parent)?;
         }
 
-        let document_xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    <w:p><w:r><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:t>{{report_title}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>LAPORAN PRAKTIK KERJA LAPANGAN (PKL)</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Nama: {{student_name}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>NISN/NIM: {{student_id}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Sekolah/Universitas: {{student_school}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Jurusan: {{student_major}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Semester: {{student_semester}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Perusahaan: {{company_name}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Alamat: {{company_address}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Departemen: {{internship_dept}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Posisi: {{internship_role}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Periode: {{internship_start}} - {{internship_end}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Pembimbing Perusahaan: {{supervisor_company}}</w:t></w:r></w:p>
-    <w:p><w:r><w:t>Pembimbing Sekolah: {{supervisor_school}}</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>COVER</w:t></w:r></w:p>
-    <w:p><w:r><w:t>{{cover_section}}</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>BAB I PENDAHULUAN</w:t></w:r></w:p>
-    <w:p><w:r><w:t>{{introduction_section}}</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>BAB II PROFIL PERUSAHAAN</w:t></w:r></w:p>
-    <w:p><w:r><w:t>{{company_profile_section}}</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>BAB III PELAKSANAAN PRAKTIK KERJA</w:t></w:r></w:p>
-    <w:p><w:r><w:t>{{activities_section}}</w:t></w:r></w:p>
-    <w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>BAB IV KESIMPULAN DAN SARAN</w:t></w:r></w:p>
-    <w:p><w:r><w:t>{{conclusion_section}}</w:t></w:r></w:p>
-  </w:body>
-</w:document>"#;
-
-        let content_types = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>"#;
-
-        let rels = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>"#;
-
-        let file = File::create(template_path)?;
-        let mut zip = ZipWriter::new(file);
-        let options =
-            FileOptions::<()>::default().compression_method(zip::CompressionMethod::Deflated);
-
-        zip.start_file("[Content_Types].xml", options)?;
-        zip.write_all(content_types.as_bytes())?;
-
-        zip.start_file("_rels/.rels", options)?;
-        zip.write_all(rels.as_bytes())?;
-
-        zip.start_file("word/document.xml", options)?;
-        zip.write_all(document_xml.as_bytes())?;
-
-        zip.finish()?;
+        std::fs::write(template_path, DEFAULT_EMBEDDED_TEMPLATE)?;
         Ok(())
     }
 
@@ -92,9 +63,12 @@ impl DocxService {
         placeholders.insert("report_title".to_string(), title.to_string());
 
         if let Some(s) = student {
-            placeholders.insert("student_name".to_string(), s.full_name.clone());
+            let name = if s.full_name.is_empty() { "-" } else { &s.full_name };
+            placeholders.insert("student_name".to_string(), name.to_string());
+            placeholders.insert("student_name_upper".to_string(), name.to_uppercase());
             placeholders.insert("student_id".to_string(), s.student_id.clone());
             placeholders.insert("student_school".to_string(), s.school.clone());
+            placeholders.insert("student_school_upper".to_string(), s.school.to_uppercase());
             placeholders.insert(
                 "student_major".to_string(),
                 s.major.clone().unwrap_or_else(|| "-".into()),
@@ -105,14 +79,18 @@ impl DocxService {
             );
         } else {
             placeholders.insert("student_name".to_string(), "-".into());
+            placeholders.insert("student_name_upper".to_string(), "-".into());
             placeholders.insert("student_id".to_string(), "-".into());
             placeholders.insert("student_school".to_string(), "-".into());
+            placeholders.insert("student_school_upper".to_string(), "-".into());
             placeholders.insert("student_major".to_string(), "-".into());
             placeholders.insert("student_semester".to_string(), "-".into());
         }
 
         if let Some(i) = internship {
-            placeholders.insert("company_name".to_string(), i.company_name.clone());
+            let c_name = if i.company_name.is_empty() { "-" } else { &i.company_name };
+            placeholders.insert("company_name".to_string(), c_name.to_string());
+            placeholders.insert("company_name_upper".to_string(), c_name.to_uppercase());
             placeholders.insert(
                 "company_address".to_string(),
                 i.company_address.clone().unwrap_or_else(|| "-".into()),
@@ -125,28 +103,21 @@ impl DocxService {
                 "internship_role".to_string(),
                 i.role.clone().unwrap_or_else(|| "-".into()),
             );
-            placeholders.insert(
-                "internship_start".to_string(),
-                i.start_date
-                    .map(|d| d.format("%d %B %Y").to_string())
-                    .unwrap_or_else(|| "-".into()),
-            );
-            placeholders.insert(
-                "internship_end".to_string(),
-                i.end_date
-                    .map(|d| d.format("%d %B %Y").to_string())
-                    .unwrap_or_else(|| "-".into()),
-            );
+            placeholders.insert("internship_start".to_string(), format_indo_date(i.start_date));
+            placeholders.insert("internship_end".to_string(), format_indo_date(i.end_date));
             placeholders.insert(
                 "supervisor_company".to_string(),
-                i.company_supervisor.clone().unwrap_or_else(|| "-".into()),
+                i.company_supervisor.clone().unwrap_or_else(|| "Pembimbing Lapangan".into()),
             );
             placeholders.insert(
                 "supervisor_school".to_string(),
-                i.school_supervisor.clone().unwrap_or_else(|| "-".into()),
+                i.school_supervisor.clone().unwrap_or_else(|| "Guru Pembimbing".into()),
             );
+            placeholders.insert("school_principal".to_string(), "Kepala Sekolah".into());
+            placeholders.insert("school_hubin".to_string(), "Wakasek Hubungan Industri".into());
         } else {
             placeholders.insert("company_name".to_string(), "-".into());
+            placeholders.insert("company_name_upper".to_string(), "-".into());
             placeholders.insert("company_address".to_string(), "-".into());
             placeholders.insert("internship_dept".to_string(), "-".into());
             placeholders.insert("internship_role".to_string(), "-".into());
@@ -154,6 +125,8 @@ impl DocxService {
             placeholders.insert("internship_end".to_string(), "-".into());
             placeholders.insert("supervisor_company".to_string(), "-".into());
             placeholders.insert("supervisor_school".to_string(), "-".into());
+            placeholders.insert("school_principal".to_string(), "-".into());
+            placeholders.insert("school_hubin".to_string(), "-".into());
         }
 
         if let Some(sec) = sections {

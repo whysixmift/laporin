@@ -170,45 +170,64 @@ impl LlmService {
             .join("\n");
 
         if self.config.environment == "test" || self.config.l9router_api_key.starts_with("dev_") {
-            // Deterministic generation
+            let role_str = internship.role.as_deref().unwrap_or("Praktikan");
+            let major_str = student.major.as_deref().unwrap_or("Rekayasa Perangkat Lunak");
+            // Deterministic generation matching authentic PKL report structure
             return Ok(GeneratedSections {
                 cover: format!(
-                    "LAPORAN PRAKTIK KERJA LAPANGAN\n{}\n\nDisusun Oleh:\n{} ({})\n{}",
-                    title, student.full_name, student.student_id, student.school
+                    "LAPORAN PRAKTIK KERJA LAPANGAN (PKL)\n{}\n\nDiajukan untuk memenuhi persyaratan peserta Mengikuti Ujian Kompetensi Keahlian\n\nDisusun Oleh:\nNama: {}\nNo. Induk: {}\nKelas/Kompetensi: {}\n\n{}\n",
+                    title, student.full_name, student.student_id, major_str, student.school
                 ),
                 introduction: format!(
-                    "Praktik Kerja Lapangan (PKL) merupakan kegiatan akademik wajib di {}. Mahasiswa melaksanakan kegiatan magang di {} guna mengaplikasikan ilmu pengetahuan dan keterampilan kerja.",
-                    student.school, internship.company_name
+                    "1.1 Latar Belakang PKL\nPraktik Kerja Lapangan (PKL) merupakan salah satu bentuk implementasi secara sistematis dan sinkron antara program penguasaan keahlian yang diperoleh melalui kegiatan belajar mengajar di {} dengan tuntutan keahlian di dunia kerja {}.\n\n1.2 Tujuan PKL\na. Mengaplikasikan teori dalam praktik nyata di dunia industri.\nb. Meningkatkan kompetensi teknis dan kedisiplinan kerja sesuai bidang {}.\nc. Membangun soft skills, komunikasi tim, dan etos kerja profesional.\n\n1.3 Tujuan Pembuatan Laporan PKL\na. Sebagai bukti otentik pertanggungjawaban kegiatan PKL.\nb. Mengembangkan kemampuan analisis dan penyusunan karya tulis ilmiah.\n\n1.4 Sistematika Laporan PKL\nLaporan ini disusun menjadi empat bab utama yang memuat Pendahuluan, Gambaran Umum Perusahaan, Pelaksanaan Praktik Kerja, serta Penutup dan Lampiran.",
+                    student.school, internship.company_name, major_str
                 ),
                 company_profile: format!(
-                    "{} merupakan institusi terkemuka dengan komitmen profesional tinggi.\n\nFakta Perusahaan:\n{}",
+                    "2.1 Sejarah Pendirian Perusahaan\n{} merupakan institusi yang bergerak secara profesional dengan komitmen mutu tinggi. Berdiri guna memenuhi kebutuhan pasar akan layanan dan produk berkualitas.\n\nFakta Terverifikasi:\n{}\n\n2.2 Visi dan Misi Perusahaan\nVisi: Menjadi penyedia layanan dan produk unggul yang terpercaya dan berdaya saing tinggi.\nMisi: Mengedepankan kepuasan pelanggan, integritas operasional, dan pemberdayaan SDM profesional.\n\n2.3 Jam Kerja dan Disiplin K3\nPerusahaan menerapkan sistem jam kerja terstruktur serta mewajibkan penerapan Standar Keselamatan dan Kesehatan Kerja (K3) di setiap lingkungan kerja operasional.",
                     internship.company_name, fact_summary
                 ),
                 activities: format!(
-                    "Selama periode magang sebagai {}, mahasiswa bertugas: {}.",
-                    internship.role.as_deref().unwrap_or("Staff"),
-                    internship
-                        .description
-                        .as_deref()
-                        .unwrap_or("melaksanakan tugas operasional sesuai arahan pembimbing")
+                    "3.1 Pelaksanaan Kegiatan PKL\nKegiatan PKL dilaksanakan di {} pada posisi {}.\n\n3.2 Jenis-Jenis Kegiatan\n1. Pelaksanaan tugas teknis sesuai kompetensi {}.\n2. Analisis kebutuhan sistem dan dokumentasi alur kerja.\n3. Pengujian dan pelaporan hasil operasional kepada pembimbing lapangan.\n\n3.3 Langkah-Langkah Kerja Terperinci\n- Alat dan Bahan: Komputer kerja, sistem perangkat lunak penunjang, koneksi internet, dan lembar operasional.\n- Langkah-Langkah: Menerima instruksi kerja, mempersiapkan modul teknis, melaksanakan eksekusi tugas, melakukan evaluasi mandiri, dan melaporkan hasil kepada supervisor.\n\n3.4 Hambatan dan Solusi\nHambatan: Adaptasi awal terhadap alur sistem dan standar kerja industri.\nSolusi: Mempelajari dokumentasi teknis secara mandiri dan berkonsultasi intensif dengan pembimbing lapangan.",
+                    internship.company_name, role_str, major_str
                 ),
                 conclusion: format!(
-                    "Pelaksanaan magang di {} memberikan wawasan berharga dan pengalaman profesional nyata bagi mahasiswa {}.",
+                    "4.1 Kesimpulan\nPelaksanaan Praktik Kerja Lapangan (PKL) di {} telah memberikan pengalaman berharga dan peningkatan wawasan praktis yang signifikan bagi siswa {}. Siswa mampu menyelaraskan teori kejuruan dengan realitas industri nyata.\n\n4.2 Saran-Saran\na. Untuk Perusahaan: Diharapkan terus memberikan bimbingan dan kesempatan berkarya yang luas bagi generasi praktikan berikutnya.\nb. Untuk Sekolah: Diharapkan terus memperbarui kurikulum praktik agar selalu selaras dengan perkembangan teknologi industri modern.",
                     internship.company_name, student.school
                 ),
             });
         }
 
         // Live 9Router API call
+        let major_str = student.major.as_deref().unwrap_or("Teknologi Informasi");
+        let role_str = internship.role.as_deref().unwrap_or("Praktikan / Staff Magang");
+        let desc_str = internship.description.as_deref().unwrap_or("Melaksanakan tugas operasional sesuai arahan pembimbing");
+
         let prompt = format!(
-            "Buat 5 bagian laporan magang (cover, introduction, company_profile, activities, conclusion) dalam format JSON berdasarkan:\n\
-            Judul: {}\nMahasiswa: {} ({}) di {}\nPerusahaan: {} (Posisi: {:?})\nFakta Terverifikasi:\n{}",
+            "Buat 5 bagian laporan Praktik Kerja Lapangan (PKL) / Magang lengkap, mendalam, dan profesional dalam format JSON standar Indonesia dengan keys: \"cover\", \"introduction\", \"company_profile\", \"activities\", \"conclusion\".\n\n\
+            Data Laporan PKL:\n\
+            - Judul Laporan: {}\n\
+            - Nama Siswa: {} (NIS/NIM: {})\n\
+            - Sekolah/Institusi: {}\n\
+            - Jurusan/Kompetensi: {}\n\
+            - Perusahaan Tempat PKL: {}\n\
+            - Posisi/Divisi: {}\n\
+            - Deskripsi Tugas: {}\n\
+            - Fakta Terverifikasi Perusahaan:\n{}\n\n\
+            Instruksi Khusus Format Bab:\n\
+            1. 'cover': Berisi judul laporan, identitas lengkap siswa, program keahlian, dan sekolah.\n\
+            2. 'introduction' (BAB I PENDAHULUAN): Wajib memuat 1.1 Latar Belakang PKL, 1.2 Tujuan PKL, 1.3 Tujuan Pembuatan Laporan PKL, dan 1.4 Sistematika Laporan PKL dalam paragraf yang rapi dan baku.\n\
+            3. 'company_profile' (BAB II GAMBARAN UMUM PERUSAHAAN): Wajib memuat 2.1 Sejarah Pendirian Perusahaan (sesuai fakta), 2.2 Visi Misi dan Motto, 2.3 Struktur Organisasi dan Tugas Divisi, 2.4 Kepegawaian dan Jam Kerja, 2.5 Disiplin Kerja dan K3, serta 2.6 Jenis Produk/Layanan.\n\
+            4. 'activities' (BAB III URAIAN PELAKSANAAN PRAKTEK DI PERUSAHAAN): Wajib memuat 3.1 Waktu & Tempat, 3.2 Jenis-Jenis Kegiatan, 3.3 Langkah-Langkah Kerja Terperinci (Alat dan Bahan + Langkah demi Langkah yang detail dan teknis), 3.4 Hasil yang Diharapkan, serta 3.5 Hambatan yang Dialami dan Solusi Penyelesaiannya.\n\
+            5. 'conclusion' (BAB IV PENUTUP): Wajib memuat 4.1 Kesimpulan dan 4.2 Saran-Saran (Saran untuk Perusahaan dan Saran untuk Sekolah/Adik Kelas).\n\n\
+            Format output HANYA berupa JSON valid tanpa teks pembuka atau markdown wrapper.",
             title,
             student.full_name,
             student.student_id,
             student.school,
+            major_str,
             internship.company_name,
-            internship.role,
+            role_str,
+            desc_str,
             fact_summary
         );
 
