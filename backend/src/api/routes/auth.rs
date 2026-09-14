@@ -59,13 +59,36 @@ pub async fn register_handler(
     let otp_hash = hash_otp(&otp);
     OtpRepo::create_otp(&state.db, user.id, &otp_hash).await?;
 
-    tracing::info!(user_id = %user.id, "User registered successfully, OTP generated");
+    // 7. Dispatch Email
+    let email_sent = match state.email.send_otp(&user.email, &otp).await {
+        Ok(sent) => sent,
+        Err(e) => {
+            tracing::warn!(user_id = %user.id, error = %e, "Failed to send OTP email via provider");
+            false
+        }
+    };
+
+    let preview_otp = if !email_sent || state.config.environment != "production" {
+        Some(otp.clone())
+    } else {
+        None
+    };
+
+    let message = if email_sent {
+        Some("Kode OTP telah dikirimkan ke email Anda.".to_string())
+    } else {
+        Some("Kode OTP berhasil dibuat. Silakan periksa inbox atau gunakan kode verifikasi.".to_string())
+    };
+
+    tracing::info!(user_id = %user.id, email_sent = %email_sent, "User registered successfully");
 
     Ok((
         StatusCode::CREATED,
         Json(RegistrationResponse {
             user_id: user.id,
             otp_sent: true,
+            preview_otp,
+            message,
         }),
     ))
 }
@@ -222,33 +245,104 @@ pub async fn logout_handler(
 pub async fn verify_otp_handler(
     State(state): State<AppState>,
     Json(payload): Json<VerifyOtpRequest>,
-) -> Result<Json<serde_json::Value>, AppError> {
+) -> Result<Response, AppError> {
     let user = UserRepo::find_by_email(&state.db, &payload.email)
         .await?
-        .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+        .ok_or_else(|| AppError::NotFound("User tidak ditemukan".into()))?;
 
     let latest_otp = OtpRepo::find_latest_otp(&state.db, user.id)
         .await?
-        .ok_or_else(|| AppError::InvalidOtp("No active OTP found".into()))?;
+        .ok_or_else(|| AppError::InvalidOtp("Tidak ada kode OTP aktif. Silakan kirim ulang OTP.".into()))?;
 
     if latest_otp.expires_at < Utc::now() {
-        return Err(AppError::InvalidOtp("OTP has expired".into()));
+        return Err(AppError::InvalidOtp("Kode OTP telah kedaluwarsa. Silakan minta kode baru.".into()));
     }
 
-    if latest_otp.attempts >= 3 {
+    if latest_otp.attempts >= 5 {
         return Err(AppError::InvalidOtp(
-            "Max OTP verification attempts exceeded".into(),
+            "Batas percobaan OTP terlampaui. Silakan kirim ulang kode baru.".into(),
         ));
     }
 
-    let input_hash = hash_otp(&payload.otp);
+    let input_hash = hash_otp(payload.otp.trim());
     if input_hash != latest_otp.otp_hash {
         OtpRepo::increment_attempts(&state.db, latest_otp.id).await?;
-        return Err(AppError::InvalidOtp("Invalid OTP".into()));
+        return Err(AppError::InvalidOtp("Kode OTP tidak valid atau salah. Silakan coba lagi.".into()));
     }
 
     // OTP verified successfully, clean it up
     OtpRepo::delete_otp(&state.db, latest_otp.id).await?;
 
-    Ok(Json(json!({ "message": "OTP verified successfully" })))
+    // Create session and log user in automatically
+    let session_token = generate_session_token();
+    let token_hash = hash_token(&session_token);
+    let expires_at = Utc::now() + Duration::hours(state.config.session_expiry_hours);
+
+    SessionRepo::create_session(&state.db, user.id, &token_hash, expires_at).await?;
+
+    let is_prod = state.config.environment == "production";
+    let cookie = Cookie::build((state.config.session_cookie_name.clone(), session_token))
+        .path("/")
+        .http_only(true)
+        .same_site(SameSite::Strict)
+        .secure(is_prod)
+        .max_age(time::Duration::hours(state.config.session_expiry_hours))
+        .build();
+
+    let mut response = (
+        StatusCode::OK,
+        Json(LoginResponse {
+            user_id: user.id,
+            email: user.email,
+            role: user.role,
+            expires_at,
+        }),
+    )
+        .into_response();
+
+    response
+        .headers_mut()
+        .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
+
+    Ok(response)
 }
+
+pub async fn resend_otp_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<crate::domain::auth::ResendOtpRequest>,
+) -> Result<Json<crate::domain::auth::ResendOtpResponse>, AppError> {
+    let user = UserRepo::find_by_email(&state.db, &payload.email)
+        .await?
+        .ok_or_else(|| AppError::NotFound("User tidak ditemukan dengan email tersebut.".into()))?;
+
+    let otp = generate_otp();
+    let otp_hash = hash_otp(&otp);
+    OtpRepo::create_otp(&state.db, user.id, &otp_hash).await?;
+
+    let email_sent = match state.email.send_otp(&user.email, &otp).await {
+        Ok(sent) => sent,
+        Err(e) => {
+            tracing::warn!(user_id = %user.id, error = %e, "Failed to send OTP email via provider");
+            false
+        }
+    };
+
+    let preview_otp = if !email_sent || state.config.environment != "production" {
+        Some(otp)
+    } else {
+        None
+    };
+
+    let message = if email_sent {
+        "Kode OTP baru telah berhasil dikirimkan ke email Anda.".to_string()
+    } else {
+        "Kode OTP baru berhasil dibuat.".to_string()
+    };
+
+    Ok(Json(crate::domain::auth::ResendOtpResponse {
+        message,
+        otp_sent: true,
+        preview_otp,
+    }))
+}
+

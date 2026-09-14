@@ -13,6 +13,23 @@ pub struct RegisterRequest {
 pub struct RegistrationResponse {
     pub user_id: Uuid,
     pub otp_sent: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preview_otp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResendOtpRequest {
+    pub email: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResendOtpResponse {
+    pub message: String,
+    pub otp_sent: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preview_otp: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

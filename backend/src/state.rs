@@ -1,6 +1,8 @@
 use crate::config::Config;
 use crate::db::DbPool;
-use crate::services::{CaptchaService, CrawlerService, LlmService, OAuthService, PaymentService};
+use crate::services::{
+    CaptchaService, CrawlerService, EmailService, LlmService, OAuthService, PaymentService,
+};
 use crate::storage::Storage;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -63,6 +65,7 @@ pub struct AppState {
     pub crawler: CrawlerService,
     pub llm: LlmService,
     pub payment: PaymentService,
+    pub email: EmailService,
     pub rate_limiter: RateLimiter,
 }
 
@@ -74,6 +77,7 @@ impl AppState {
             crawler: CrawlerService::new(),
             llm: LlmService::new(config.clone()),
             payment: PaymentService::new(config.clone()),
+            email: EmailService::new(&config),
             rate_limiter: RateLimiter::new(),
             db,
             config,

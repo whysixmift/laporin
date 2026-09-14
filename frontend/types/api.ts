@@ -129,6 +129,14 @@ export interface RegisterRequest {
 export interface RegistrationResponse {
   user_id: string
   otp_sent: boolean
+  preview_otp?: string
+  message?: string
+}
+
+export interface ResendOtpResponse {
+  message: string
+  otp_sent: boolean
+  preview_otp?: string
 }
 
 export interface LoginRequest {

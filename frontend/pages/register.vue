@@ -44,10 +44,15 @@ const handleSubmit = async () => {
     })
 
     if (res.otp_sent) {
-      toast.info('OTP Dikirim', 'Silakan masukkan kode OTP untuk verifikasi pendaftaran.')
-      router.push(`/verify-otp?email=${encodeURIComponent(email.value.trim())}`)
+      if (res.preview_otp) {
+        toast.info('OTP Dibuat', 'Kode OTP verifikasi Anda telah dibuat. Mengalihkan ke halaman verifikasi...')
+        router.push(`/verify-otp?email=${encodeURIComponent(email.value.trim())}&preview_otp=${encodeURIComponent(res.preview_otp)}`)
+      } else {
+        toast.info('OTP Dikirim', res.message || 'Silakan periksa kotak masuk email Anda untuk kode OTP.')
+        router.push(`/verify-otp?email=${encodeURIComponent(email.value.trim())}`)
+      }
     } else {
-      toast.success('Pendaftaran Berhasil', 'Silakan masuk dengan akun Anda.')
+      toast.success('Pendaftaran Berhasil', 'Akun berhasil dibuat. Silakan masuk.')
       router.push('/login')
     }
   } catch (err: unknown) {

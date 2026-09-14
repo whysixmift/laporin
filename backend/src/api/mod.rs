@@ -29,7 +29,8 @@ pub fn create_router(state: AppState) -> Router {
             post(routes::auth::google_callback_handler),
         )
         .route("/logout", post(routes::auth::logout_handler))
-        .route("/verify-otp", post(routes::auth::verify_otp_handler));
+        .route("/verify-otp", post(routes::auth::verify_otp_handler))
+        .route("/resend-otp", post(routes::auth::resend_otp_handler));
 
     let report_routes = Router::new()
         .route(

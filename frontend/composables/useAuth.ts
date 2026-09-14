@@ -113,8 +113,17 @@ export const useAuth = () => {
     return res
   }
 
-  const verifyOtp = async (payload: VerifyOtpRequest): Promise<void> => {
-    await api.post('/auth/verify-otp', payload)
+  const verifyOtp = async (payload: VerifyOtpRequest): Promise<LoginResponse> => {
+    const res = await api.post<LoginResponse>('/auth/verify-otp', payload)
+    if (res && res.user_id) {
+      setAuth(res.user_id, res.email || payload.email, res.role || 'user', res.expires_at)
+    }
+    return res
+  }
+
+  const resendOtp = async (email: string): Promise<ResendOtpResponse> => {
+    const res = await api.post<ResendOtpResponse>('/auth/resend-otp', { email })
+    return res
   }
 
   const getGoogleOAuthUrl = async (): Promise<string> => {
@@ -153,6 +162,7 @@ export const useAuth = () => {
     register,
     login,
     verifyOtp,
+    resendOtp,
     getGoogleOAuthUrl,
     handleGoogleCallback,
     logout
