@@ -139,7 +139,81 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   user_id: string
+  email?: string
+  role?: string
   expires_at: string
+}
+
+export interface UserResponse {
+  id: string
+  email: string
+  role: string
+  is_active: boolean
+  created_at: string
+  report_count?: number
+}
+
+export interface SystemMetrics {
+  memory_used_mb: number
+  memory_total_mb: number
+  memory_percentage: number
+  disk_free_gb: number
+  libreoffice_available: boolean
+  environment: string
+}
+
+export interface AdminMetrics {
+  total_users: number
+  total_admins: number
+  total_reports: number
+  unlocked_reports: number
+  total_revenue_idr: number
+  active_jobs: number
+  status_breakdown: Record<string, number>
+  system: SystemMetrics
+}
+
+export interface AdminReportItem {
+  id: string
+  user_id: string
+  user_email: string
+  title: string
+  status: ReportStatus
+  student_name?: string | null
+  company_name?: string | null
+  created_at: string
+  updated_at?: string
+}
+
+export interface AdminJobItem {
+  job_id: string
+  report_id: string
+  report_title?: string | null
+  user_email?: string | null
+  job_type: 'research' | 'generation'
+  status: JobStatus
+  attempts: number
+  max_attempts: number
+  created_at: string
+  started_at?: string | null
+  finished_at?: string | null
+  error_code?: string | null
+  error_message?: string | null
+}
+
+export interface AiPlaygroundRequest {
+  type: 'llm' | 'crawl'
+  prompt?: string
+  system_prompt?: string
+  url?: string
+}
+
+export interface AiPlaygroundResponse {
+  test_type: string
+  success: boolean
+  output: Record<string, any>
+  duration_ms: number
+  error?: string | null
 }
 
 export interface VerifyOtpRequest {
@@ -151,3 +225,4 @@ export interface GoogleCallback {
   code: string
   state?: string
 }
+

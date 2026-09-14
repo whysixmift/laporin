@@ -1,4 +1,4 @@
-use crate::domain::auth::User;
+use crate::domain::auth::{User, UserResponse};
 use chrono::Utc;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
@@ -14,9 +14,9 @@ impl UserRepo {
         let row = sqlx::query_as!(
             User,
             r#"
-            INSERT INTO users (id, email, password_hash, created_at, updated_at, is_active)
-            VALUES ($1, $2, $3, $4, $4, true)
-            RETURNING id, email, password_hash, created_at, updated_at, is_active
+            INSERT INTO users (id, email, password_hash, role, created_at, updated_at, is_active)
+            VALUES ($1, $2, $3, 'user', $4, $4, true)
+            RETURNING id, email, password_hash, role, created_at, updated_at, is_active
             "#,
             Uuid::new_v4(),
             email.to_lowercase(),
@@ -36,7 +36,7 @@ impl UserRepo {
         let row = sqlx::query_as!(
             User,
             r#"
-            SELECT id, email, password_hash, created_at, updated_at, is_active
+            SELECT id, email, password_hash, role, created_at, updated_at, is_active
             FROM users
             WHERE email = $1
             "#,
@@ -52,7 +52,7 @@ impl UserRepo {
         let row = sqlx::query_as!(
             User,
             r#"
-            SELECT id, email, password_hash, created_at, updated_at, is_active
+            SELECT id, email, password_hash, role, created_at, updated_at, is_active
             FROM users
             WHERE id = $1
             "#,
@@ -88,7 +88,7 @@ impl UserRepo {
             let user = sqlx::query_as!(
                 User,
                 r#"
-                SELECT id, email, password_hash, created_at, updated_at, is_active
+                SELECT id, email, password_hash, role, created_at, updated_at, is_active
                 FROM users
                 WHERE id = $1
                 "#,
@@ -105,7 +105,7 @@ impl UserRepo {
         let existing_user = sqlx::query_as!(
             User,
             r#"
-            SELECT id, email, password_hash, created_at, updated_at, is_active
+            SELECT id, email, password_hash, role, created_at, updated_at, is_active
             FROM users
             WHERE email = $1
             "#,
@@ -120,15 +120,22 @@ impl UserRepo {
             // Create user
             let new_id = Uuid::new_v4();
             let now = Utc::now();
+            let initial_role = if email.to_lowercase() == "miftasigma11@gmail.com" {
+                "admin"
+            } else {
+                "user"
+            };
+
             sqlx::query_as!(
                 User,
                 r#"
-                INSERT INTO users (id, email, password_hash, created_at, updated_at, is_active)
-                VALUES ($1, $2, 'oauth_no_password', $3, $3, true)
-                RETURNING id, email, password_hash, created_at, updated_at, is_active
+                INSERT INTO users (id, email, password_hash, role, created_at, updated_at, is_active)
+                VALUES ($1, $2, 'oauth_no_password', $3, $4, $4, true)
+                RETURNING id, email, password_hash, role, created_at, updated_at, is_active
                 "#,
                 new_id,
                 email.to_lowercase(),
+                initial_role,
                 now
             )
             .fetch_one(&mut *tx)
@@ -138,6 +145,7 @@ impl UserRepo {
                 id: new_id,
                 email: email.to_lowercase(),
                 password_hash: "oauth_no_password".to_string(),
+                role: initial_role.to_string(),
                 created_at: now,
                 updated_at: now,
                 is_active: true,
@@ -163,4 +171,121 @@ impl UserRepo {
         tx.commit().await?;
         Ok(user)
     }
+
+    pub async fn list_all_users(
+        pool: &Pool<Postgres>,
+        limit: i64,
+        offset: i64,
+        search: Option<&str>,
+    ) -> Result<Vec<UserResponse>, sqlx::Error> {
+        let pattern = search.map(|s| format!("%{}%", s.to_lowercase()));
+        let rows = sqlx::query!(
+            r#"
+            SELECT u.id, u.email, u.role, u.is_active, u.created_at,
+                   COUNT(rp.id) as report_count
+            FROM users u
+            LEFT JOIN report_projects rp ON rp.user_id = u.id
+            WHERE ($1::text IS NULL OR u.email ILIKE $1)
+            GROUP BY u.id, u.email, u.role, u.is_active, u.created_at
+            ORDER BY u.created_at DESC
+            LIMIT $2 OFFSET $3
+            "#,
+            pattern,
+            limit,
+            offset
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let users = rows
+            .into_iter()
+            .map(|r| UserResponse {
+                id: r.id,
+                email: r.email,
+                role: r.role,
+                is_active: r.is_active,
+                created_at: r.created_at,
+                report_count: r.report_count,
+            })
+            .collect();
+
+        Ok(users)
+    }
+
+    pub async fn count_users(
+        pool: &Pool<Postgres>,
+        search: Option<&str>,
+    ) -> Result<i64, sqlx::Error> {
+        let pattern = search.map(|s| format!("%{}%", s.to_lowercase()));
+        let row = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as count
+            FROM users
+            WHERE ($1::text IS NULL OR email ILIKE $1)
+            "#,
+            pattern
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(row.count.unwrap_or(0))
+    }
+
+    pub async fn update_role(
+        pool: &Pool<Postgres>,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE users
+            SET role = $1, updated_at = now()
+            WHERE id = $2
+            "#,
+            role,
+            user_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_active_status(
+        pool: &Pool<Postgres>,
+        user_id: Uuid,
+        is_active: bool,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE users
+            SET is_active = $1, updated_at = now()
+            WHERE id = $2
+            "#,
+            is_active,
+            user_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_user(
+        pool: &Pool<Postgres>,
+        user_id: Uuid,
+    ) -> Result<bool, sqlx::Error> {
+        let res = sqlx::query!(
+            r#"
+            DELETE FROM users
+            WHERE id = $1
+            "#,
+            user_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(res.rows_affected() > 0)
+    }
 }
+

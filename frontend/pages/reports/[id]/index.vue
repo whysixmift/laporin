@@ -8,6 +8,8 @@ const reportId = route.params.id as string
 const { getReport, downloadDocx, updateReport } = useReports()
 const { startResearch, getResearchStatus, startGeneration, getGenerationStatus, pollJob } = useReportJob()
 const { createPayment, getPayment, pollPaymentStatus } = usePayment()
+const { isAdmin } = useAuth()
+const api = useApi()
 const toast = useToast()
 
 const report = ref<Report | null>(null)
@@ -16,8 +18,24 @@ const error = ref('')
 const activeJob = ref<JobInfo | null>(null)
 const isJobProcessing = ref(false)
 const isPaying = ref(false)
+const isFreeUnlocking = ref(false)
 const currentPayment = ref<Payment | null>(null)
 const isDownloading = ref(false)
+
+const handleAdminFreeUnlock = async () => {
+  if (!report.value) return
+  isFreeUnlocking.value = true
+  try {
+    await api.post(`/reports/${reportId}/free-unlock`)
+    toast.success('Buka Kunci Gratis Berhasil!', 'Laporan telah dibuka sepenuhnya oleh Admin tanpa pembayaran.')
+    await fetchReportData()
+  } catch (err: any) {
+    toast.error('Gagal Membuka Kunci', err.message || 'Terjadi kesalahan.')
+  } finally {
+    isFreeUnlocking.value = false
+  }
+}
+
 
 // Edit mode state for draft
 const isEditModalOpen = ref(false)
@@ -309,6 +327,21 @@ const handleDownloadDocx = async () => {
       <div class="flex items-center gap-3 shrink-0">
         <BaseBadge v-if="report" :status="report.status" size="md" />
 
+        <!-- Admin Quick Unlock Button -->
+        <button
+          v-if="isAdmin && report && report.status !== 'unlocked' && report.status !== 'paid'"
+          type="button"
+          :disabled="isFreeUnlocking"
+          class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-colors inline-flex items-center gap-1.5 shadow-subtle"
+          title="Buka kunci gratis khusus Admin"
+          @click="handleAdminFreeUnlock"
+        >
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+          </svg>
+          <span>{{ isFreeUnlocking ? 'Membuka...' : 'Buka Kunci Gratis (Admin)' }}</span>
+        </button>
+
         <BaseButton
           v-if="report && (report.status === 'unlocked' || report.status === 'paid')"
           variant="primary"
@@ -325,6 +358,7 @@ const handleDownloadDocx = async () => {
         </BaseButton>
       </div>
     </div>
+
 
     <!-- Stepper indicator -->
     <ReportStatusIndicator v-if="report" :status="report.status" />

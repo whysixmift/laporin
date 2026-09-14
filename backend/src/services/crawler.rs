@@ -181,4 +181,13 @@ impl CrawlerService {
         // Limit to 10,000 characters for LLM prompt context
         clean.chars().take(10000).collect()
     }
+
+    pub async fn fetch_url(
+        &self,
+        url_str: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let (_, text) = self.fetch_and_sanitize(url_str).await?;
+        Ok(text)
+    }
 }
+

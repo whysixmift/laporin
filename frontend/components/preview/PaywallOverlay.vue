@@ -4,11 +4,31 @@ interface Props {
   loading?: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   pay: []
+  unlocked: []
 }>()
+
+const { isAdmin } = useAuth()
+const api = useApi()
+const toast = useToast()
+const isFreeUnlocking = ref(false)
+
+const handleFreeUnlock = async () => {
+  isFreeUnlocking.value = true
+  try {
+    await api.post(`/reports/${props.reportId}/free-unlock`)
+    toast.success('Buka Kunci Berhasil!', 'Laporan berhasil dibuka secara gratis untuk Admin.')
+    emit('unlocked')
+    window.location.reload()
+  } catch (err: any) {
+    toast.error('Gagal Membuka Kunci', err.message || 'Terjadi kesalahan.')
+  } finally {
+    isFreeUnlocking.value = false
+  }
+}
 </script>
 
 <template>
@@ -64,21 +84,38 @@ const emit = defineEmits<{
           <span class="text-[11px] text-ink-muted">Pembayaran via QRIS / VA Mayar</span>
         </div>
 
-        <BaseButton
-          size="lg"
-          variant="primary"
-          :loading="loading"
-          @click="emit('pay')"
-        >
-          <template #leading>
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="5" width="20" height="14" rx="2" />
-              <line x1="2" y1="10" x2="22" y2="10" />
+        <div class="flex flex-col gap-2 w-full sm:w-auto">
+          <!-- Admin Free Unlock Button -->
+          <button
+            v-if="isAdmin"
+            type="button"
+            :disabled="isFreeUnlocking"
+            class="px-4 py-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition-colors inline-flex items-center justify-center gap-2 shadow-subtle"
+            @click="handleFreeUnlock"
+          >
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
             </svg>
-          </template>
-          Buka File DOCX Sekarang
-        </BaseButton>
+            <span>{{ isFreeUnlocking ? 'Membuka Kunci...' : 'Buka Kunci Gratis (Admin)' }}</span>
+          </button>
+
+          <BaseButton
+            size="lg"
+            variant="primary"
+            :loading="loading"
+            @click="emit('pay')"
+          >
+            <template #leading>
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+            </template>
+            Buka File DOCX Sekarang
+          </BaseButton>
+        </div>
       </div>
     </div>
   </div>
 </template>
+

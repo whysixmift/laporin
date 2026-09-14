@@ -1,6 +1,6 @@
 use crate::domain::report::{
-    GeneratedSections, InternshipInfo, Report, ReportCreate, ReportUpdate, ResearchFact,
-    ResearchSource, StudentInfo,
+    AdminReportSummary, GeneratedSections, InternshipInfo, Report, ReportCreate, ReportUpdate,
+    ResearchFact, ResearchSource, StudentInfo,
 };
 use chrono::{DateTime, Utc};
 use sqlx::types::BigDecimal;
@@ -475,4 +475,97 @@ impl ReportRepo {
 
         Ok(row.map(|r| r.path))
     }
+
+    pub async fn list_all_reports_admin(
+        pool: &Pool<Postgres>,
+        limit: i64,
+        offset: i64,
+        status: Option<&str>,
+        search: Option<&str>,
+    ) -> Result<Vec<AdminReportSummary>, sqlx::Error> {
+        let pattern = search.map(|s| format!("%{}%", s.to_lowercase()));
+        let rows = sqlx::query!(
+            r#"
+            SELECT rp.id, rp.user_id, u.email as user_email, rp.title, rp.status,
+                   rsi.full_name as student_name,
+                   rii.company_name as company_name,
+                   rp.created_at, rp.updated_at
+            FROM report_projects rp
+            JOIN users u ON u.id = rp.user_id
+            LEFT JOIN report_student_infos rsi ON rsi.report_id = rp.id
+            LEFT JOIN report_internship_infos rii ON rii.report_id = rp.id
+            WHERE ($1::text IS NULL OR rp.status = $1)
+              AND ($2::text IS NULL OR rp.title ILIKE $2 OR u.email ILIKE $2 OR rsi.full_name ILIKE $2 OR rii.company_name ILIKE $2)
+            ORDER BY rp.created_at DESC
+            LIMIT $3 OFFSET $4
+            "#,
+            status,
+            pattern,
+            limit,
+            offset
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let reports = rows
+            .into_iter()
+            .map(|r| AdminReportSummary {
+                id: r.id,
+                user_id: r.user_id,
+                user_email: r.user_email,
+                title: r.title,
+                status: r.status,
+                student_name: Some(r.student_name),
+                company_name: Some(r.company_name),
+                created_at: r.created_at,
+                updated_at: r.updated_at,
+            })
+            .collect();
+
+
+        Ok(reports)
+    }
+
+    pub async fn count_all_reports_admin(
+        pool: &Pool<Postgres>,
+        status: Option<&str>,
+        search: Option<&str>,
+    ) -> Result<i64, sqlx::Error> {
+        let pattern = search.map(|s| format!("%{}%", s.to_lowercase()));
+        let row = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as count
+            FROM report_projects rp
+            JOIN users u ON u.id = rp.user_id
+            LEFT JOIN report_student_infos rsi ON rsi.report_id = rp.id
+            LEFT JOIN report_internship_infos rii ON rii.report_id = rp.id
+            WHERE ($1::text IS NULL OR rp.status = $1)
+              AND ($2::text IS NULL OR rp.title ILIKE $2 OR u.email ILIKE $2 OR rsi.full_name ILIKE $2 OR rii.company_name ILIKE $2)
+            "#,
+            status,
+            pattern
+        )
+        .fetch_one(pool)
+        .await?;
+
+        Ok(row.count.unwrap_or(0))
+    }
+
+    pub async fn delete_report(
+        pool: &Pool<Postgres>,
+        report_id: Uuid,
+    ) -> Result<bool, sqlx::Error> {
+        let res = sqlx::query!(
+            r#"
+            DELETE FROM report_projects
+            WHERE id = $1
+            "#,
+            report_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(res.rows_affected() > 0)
+    }
 }
+

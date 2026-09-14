@@ -1,4 +1,4 @@
-use crate::domain::job::JobInfo;
+use crate::domain::job::{AdminJobItem, JobInfo};
 use chrono::Utc;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
@@ -287,4 +287,167 @@ impl JobRepo {
             error_message: r.error_message,
         }))
     }
+
+    pub async fn list_all_jobs_admin(
+        pool: &Pool<Postgres>,
+        limit: i64,
+        offset: i64,
+        job_type: Option<&str>,
+        status: Option<&str>,
+    ) -> Result<Vec<AdminJobItem>, sqlx::Error> {
+        let mut results = Vec::new();
+
+        if job_type.is_none() || job_type == Some("research") {
+            let r_jobs = sqlx::query!(
+                r#"
+                SELECT rj.id, rj.report_id, rp.title as report_title, u.email as user_email,
+                       rj.status, rj.attempts, rj.max_attempts, rj.created_at,
+                       rj.started_at, rj.finished_at, rj.error_code, rj.error_message
+                FROM research_jobs rj
+                JOIN report_projects rp ON rp.id = rj.report_id
+                JOIN users u ON u.id = rp.user_id
+                WHERE ($1::text IS NULL OR rj.status = $1)
+                ORDER BY rj.created_at DESC
+                LIMIT $2
+                "#,
+                status,
+                limit
+            )
+            .fetch_all(pool)
+            .await?;
+
+            for r in r_jobs {
+                results.push(AdminJobItem {
+                    job_id: r.id,
+                    report_id: r.report_id,
+                    report_title: Some(r.report_title),
+                    user_email: Some(r.user_email),
+                    job_type: "research".to_string(),
+                    status: r.status,
+                    attempts: r.attempts,
+                    max_attempts: r.max_attempts,
+                    created_at: r.created_at,
+                    started_at: r.started_at,
+                    finished_at: r.finished_at,
+                    error_code: r.error_code,
+                    error_message: r.error_message,
+                });
+            }
+        }
+
+        if job_type.is_none() || job_type == Some("generation") {
+            let g_jobs = sqlx::query!(
+                r#"
+                SELECT gj.id, gj.report_id, rp.title as report_title, u.email as user_email,
+                       gj.status, gj.attempts, gj.max_attempts, gj.created_at,
+                       gj.started_at, gj.finished_at, gj.error_code, gj.error_message
+                FROM generation_jobs gj
+                JOIN report_projects rp ON rp.id = gj.report_id
+                JOIN users u ON u.id = rp.user_id
+                WHERE ($1::text IS NULL OR gj.status = $1)
+                ORDER BY gj.created_at DESC
+                LIMIT $2
+                "#,
+                status,
+                limit
+            )
+            .fetch_all(pool)
+            .await?;
+
+            for g in g_jobs {
+                results.push(AdminJobItem {
+                    job_id: g.id,
+                    report_id: g.report_id,
+                    report_title: Some(g.report_title),
+                    user_email: Some(g.user_email),
+                    job_type: "generation".to_string(),
+                    status: g.status,
+                    attempts: g.attempts,
+                    max_attempts: g.max_attempts,
+                    created_at: g.created_at,
+                    started_at: g.started_at,
+                    finished_at: g.finished_at,
+                    error_code: g.error_code,
+                    error_message: g.error_message,
+                });
+            }
+        }
+
+        // Sort combined list descending by created_at
+        results.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        let start = offset as usize;
+        let end = (offset + limit) as usize;
+        if start >= results.len() {
+            return Ok(Vec::new());
+        }
+        let slice = results[start..std::cmp::min(end, results.len())].to_vec();
+        Ok(slice)
+    }
+
+    pub async fn retry_job(
+        pool: &Pool<Postgres>,
+        job_id: Uuid,
+    ) -> Result<bool, sqlx::Error> {
+        let r_res = sqlx::query!(
+            r#"
+            UPDATE research_jobs
+            SET status = 'pending', attempts = 0, error_code = NULL, error_message = NULL, started_at = NULL, finished_at = NULL
+            WHERE id = $1
+            "#,
+            job_id
+        )
+        .execute(pool)
+        .await?;
+
+        if r_res.rows_affected() > 0 {
+            return Ok(true);
+        }
+
+        let g_res = sqlx::query!(
+            r#"
+            UPDATE generation_jobs
+            SET status = 'pending', attempts = 0, error_code = NULL, error_message = NULL, started_at = NULL, finished_at = NULL
+            WHERE id = $1
+            "#,
+            job_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(g_res.rows_affected() > 0)
+    }
+
+    pub async fn cancel_job(
+        pool: &Pool<Postgres>,
+        job_id: Uuid,
+    ) -> Result<bool, sqlx::Error> {
+        let r_res = sqlx::query!(
+            r#"
+            UPDATE research_jobs
+            SET status = 'cancelled', finished_at = now()
+            WHERE id = $1 AND status IN ('pending', 'running')
+            "#,
+            job_id
+        )
+        .execute(pool)
+        .await?;
+
+        if r_res.rows_affected() > 0 {
+            return Ok(true);
+        }
+
+        let g_res = sqlx::query!(
+            r#"
+            UPDATE generation_jobs
+            SET status = 'cancelled', finished_at = now()
+            WHERE id = $1 AND status IN ('pending', 'running')
+            "#,
+            job_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(g_res.rows_affected() > 0)
+    }
 }
+

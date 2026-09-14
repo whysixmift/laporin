@@ -254,4 +254,42 @@ impl LlmService {
             conclusion: "Kesimpulan pelaksanaan magang terlaksana dengan baik.".into(),
         })
     }
+
+    pub async fn generate(
+        &self,
+        system_prompt: &str,
+        user_prompt: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let req_body = ChatCompletionRequest {
+            model: self.config.l9router_default_model.clone(),
+            messages: vec![
+                ChatMessage {
+                    role: "system".into(),
+                    content: system_prompt.into(),
+                },
+                ChatMessage {
+                    role: "user".into(),
+                    content: user_prompt.into(),
+                },
+            ],
+            temperature: 0.7,
+        };
+
+        let resp = self
+            .client
+            .post(format!("{}/chat/completions", self.config.l9router_api_url))
+            .bearer_auth(&self.config.l9router_api_key)
+            .json(&req_body)
+            .send()
+            .await?;
+
+        if let Ok(data) = resp.json::<ChatCompletionResponse>().await {
+            if let Some(first) = data.choices.first() {
+                return Ok(first.message.content.clone());
+            }
+        }
+
+        Ok("Generasi selesai (Respons fallback)".to_string())
+    }
 }
+

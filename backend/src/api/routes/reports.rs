@@ -74,7 +74,7 @@ pub async fn get_report_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
 
-    if owner_id != auth.user_id {
+    if owner_id != auth.user_id && auth.role != "admin" {
         return Err(AppError::Forbidden(
             "You do not have access to this report".into(),
         ));
@@ -93,7 +93,7 @@ pub async fn update_report_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
 
-    if owner_id != auth.user_id {
+    if owner_id != auth.user_id && auth.role != "admin" {
         return Err(AppError::Forbidden(
             "You do not have access to this report".into(),
         ));
@@ -113,7 +113,7 @@ pub async fn get_preview_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
 
-    if owner_id != auth.user_id {
+    if owner_id != auth.user_id && auth.role != "admin" {
         return Err(AppError::Forbidden(
             "You do not have access to this preview".into(),
         ));
@@ -143,7 +143,7 @@ pub async fn get_preview_handler(
     let stream = ReaderStream::new(file);
     let body = Body::from_stream(stream);
 
-    let mut response = Response::builder()
+    let response = Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "application/pdf")
         .header(
@@ -170,14 +170,14 @@ pub async fn download_report_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
 
-    if owner_id != auth.user_id {
+    if owner_id != auth.user_id && auth.role != "admin" {
         return Err(AppError::Forbidden(
             "You do not have access to this report".into(),
         ));
     }
 
-    // Only unlocked or paid reports can download final DOCX
-    if report.status != "unlocked" && report.status != "paid" {
+    // Only unlocked or paid reports can download final DOCX (admins can download anytime if file exists)
+    if report.status != "unlocked" && report.status != "paid" && auth.role != "admin" {
         return Err(AppError::Forbidden(
             "Report must be unlocked/paid to download the final document".into(),
         ));
@@ -216,3 +216,45 @@ pub async fn download_report_handler(
 
     Ok(response)
 }
+
+pub async fn free_unlock_handler(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    if auth.role != "admin" {
+        return Err(AppError::Forbidden("Only administrators can perform free report unlocks".into()));
+    }
+
+    let (report, _) = ReportRepo::get_report_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
+
+    ReportRepo::update_status(&state.db, id, "unlocked").await?;
+
+    let payment_id = Uuid::new_v4();
+    let _ = sqlx::query!(
+        r#"
+        INSERT INTO payments (id, report_id, status, amount_cents, created_at, updated_at)
+        VALUES ($1, $2, 'succeeded', 0, now(), now())
+        ON CONFLICT DO NOTHING
+        "#,
+        payment_id,
+        id
+    )
+    .execute(&state.db)
+    .await;
+
+    if report.generated_sections.is_some() && report.generated_doc_path.is_none() {
+        let _ = crate::db::job_repo::JobRepo::enqueue_generation_job(&state.db, id).await;
+    }
+
+    tracing::info!(report_id = %id, admin_email = %auth.email, "Admin performed Free Instant Unlock on report");
+
+    Ok(Json(json!({
+        "message": "Report unlocked for free successfully",
+        "status": "unlocked",
+        "report_id": id
+    })))
+}
+

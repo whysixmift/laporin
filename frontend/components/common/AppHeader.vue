@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { isAuthenticated, authState, logout } = useAuth()
+const { isAuthenticated, isAdmin, authState, logout } = useAuth()
 const route = useRoute()
 </script>
 
@@ -20,6 +20,20 @@ const route = useRoute()
       <!-- Navigation Links -->
       <nav class="flex items-center gap-2 sm:gap-4">
         <template v-if="isAuthenticated">
+          <NuxtLink
+            v-if="isAdmin"
+            to="/admin"
+            :class="[
+              'text-xs sm:text-sm px-3 py-1.5 rounded-md transition-colors font-medium inline-flex items-center gap-1.5',
+              route.path.startsWith('/admin')
+                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                : 'text-amber-400/90 hover:text-amber-300 hover:bg-amber-500/10'
+            ]"
+          >
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>Admin</span>
+          </NuxtLink>
+
           <NuxtLink
             to="/dashboard"
             :class="[
@@ -44,6 +58,7 @@ const route = useRoute()
           </NuxtLink>
 
           <div class="h-4 w-px bg-border mx-1" />
+
 
           <!-- User dropdown / Logout -->
           <div class="flex items-center gap-2">

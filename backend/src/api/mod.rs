@@ -6,7 +6,7 @@ use axum::{
     Router,
     middleware::from_fn,
     middleware::from_fn_with_state,
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
 };
 use tower_http::cors::{Any, CorsLayer};
 
@@ -19,6 +19,7 @@ pub fn create_router(state: AppState) -> Router {
     let auth_routes = Router::new()
         .route("/register", post(routes::auth::register_handler))
         .route("/login", post(routes::auth::login_handler))
+        .route("/me", get(routes::auth::me_handler))
         .route(
             "/google/oauth_url",
             get(routes::auth::google_oauth_url_handler),
@@ -45,6 +46,10 @@ pub fn create_router(state: AppState) -> Router {
             get(routes::reports::download_report_handler),
         )
         .route(
+            "/:id/free-unlock",
+            post(routes::reports::free_unlock_handler),
+        )
+        .route(
             "/:id/research/start",
             post(routes::research::start_research_handler),
         )
@@ -68,11 +73,43 @@ pub fn create_router(state: AppState) -> Router {
     let webhook_routes =
         Router::new().route("/mayar", post(routes::webhooks::mayar_webhook_handler));
 
+    let admin_routes = Router::new()
+        .route("/metrics", get(routes::admin::metrics_handler))
+        .route("/users", get(routes::admin::list_users_handler))
+        .route(
+            "/users/:id/role",
+            patch(routes::admin::update_user_role_handler),
+        )
+        .route(
+            "/users/:id/status",
+            patch(routes::admin::update_user_status_handler),
+        )
+        .route("/users/:id", delete(routes::admin::delete_user_handler))
+        .route("/reports", get(routes::admin::list_reports_handler))
+        .route(
+            "/reports/:id",
+            get(routes::admin::get_report_handler).delete(routes::admin::delete_report_handler),
+        )
+        .route(
+            "/reports/:id/unlock",
+            post(routes::admin::unlock_report_handler),
+        )
+        .route(
+            "/reports/:id/regenerate",
+            post(routes::admin::regenerate_report_handler),
+        )
+        .route("/jobs", get(routes::admin::list_jobs_handler))
+        .route("/jobs/:id/retry", post(routes::admin::retry_job_handler))
+        .route("/jobs/:id/cancel", post(routes::admin::cancel_job_handler))
+        .route("/ai/playground", post(routes::admin::ai_playground_handler))
+        .route("/system/health", get(routes::admin::system_health_handler));
+
     let api_v1 = Router::new()
         .nest("/auth", auth_routes.clone())
         .nest("/reports", report_routes.clone())
         .nest("/payments", payment_routes.clone())
-        .nest("/webhook", webhook_routes.clone());
+        .nest("/webhook", webhook_routes.clone())
+        .nest("/admin", admin_routes.clone());
 
     Router::new()
         .route("/health", get(health_handler))
@@ -81,6 +118,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/reports", report_routes)
         .nest("/payments", payment_routes)
         .nest("/webhook", webhook_routes)
+        .nest("/admin", admin_routes)
         // Nested under /api/v1 as defined in servers info
         .nest("/api/v1", api_v1)
         .layer(from_fn_with_state(state.clone(), rate_limit_middleware))
@@ -92,3 +130,4 @@ pub fn create_router(state: AppState) -> Router {
 async fn health_handler() -> &'static str {
     "OK"
 }
+

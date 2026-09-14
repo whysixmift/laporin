@@ -115,6 +115,8 @@ pub async fn login_handler(
         StatusCode::OK,
         Json(LoginResponse {
             user_id: user.id,
+            email: user.email,
+            role: user.role,
             expires_at,
         }),
     )
@@ -125,6 +127,19 @@ pub async fn login_handler(
         .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());
 
     Ok(response)
+}
+
+pub async fn me_handler(
+    auth_user: AuthenticatedUser,
+) -> Result<Json<crate::domain::auth::UserResponse>, AppError> {
+    Ok(Json(crate::domain::auth::UserResponse {
+        id: auth_user.user_id,
+        email: auth_user.email,
+        role: auth_user.role,
+        is_active: auth_user.is_active,
+        created_at: Utc::now(),
+        report_count: None,
+    }))
 }
 
 pub async fn google_oauth_url_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
@@ -169,6 +184,8 @@ pub async fn google_callback_handler(
         StatusCode::OK,
         Json(LoginResponse {
             user_id: user.id,
+            email: user.email,
+            role: user.role,
             expires_at,
         }),
     )
