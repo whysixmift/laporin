@@ -5,26 +5,47 @@ definePageMeta({
   middleware: 'admin'
 })
 
-const { getMetrics, getSystemHealth } = useAdmin()
+const { getMetrics, getSystemHealth, getCdnStatus, testCdnUpload } = useAdmin()
 const toast = useToast()
 
 const metrics = ref<AdminMetrics | null>(null)
 const health = ref<any>(null)
+const cdn = ref<any>(null)
 const loading = ref(true)
+const testingCdn = ref(false)
+const cdnTestResult = ref<any>(null)
 
 const loadSystemData = async () => {
   loading.value = true
   try {
-    const [m, h] = await Promise.all([
+    const [m, h, c] = await Promise.all([
       getMetrics(),
-      getSystemHealth()
+      getSystemHealth(),
+      getCdnStatus()
     ])
     metrics.value = m
     health.value = h
+    cdn.value = c
   } catch (err: any) {
     toast.error('Gagal Memuat Status Sistem', err.message || 'Terjadi kesalahan.')
   } finally {
     loading.value = false
+  }
+}
+
+const handleTestCdn = async () => {
+  testingCdn.value = true
+  cdnTestResult.value = null
+  try {
+    const res = await testCdnUpload()
+    cdnTestResult.value = res.upload
+    toast.success('Upload CDN Berhasil!', `Berkas tersimpan di: ${res.upload.url}`)
+    // Refresh CDN quota stats
+    cdn.value = await getCdnStatus()
+  } catch (err: any) {
+    toast.error('Upload CDN Gagal', err.message || 'Gagal mengirim berkas ke CDN.')
+  } finally {
+    testingCdn.value = false
   }
 }
 
@@ -42,13 +63,13 @@ onMounted(() => {
         <div>
           <h2 class="text-xl font-bold text-ink-primary">Status & Kesehatan Sistem</h2>
           <p class="text-xs sm:text-sm text-ink-secondary mt-0.5">
-            Diagnostik infrastruktur server VPS (2 GB RAM / 16 GB SSD), database PostgreSQL, dan modul LibreOffice.
+            Diagnostik infrastruktur server VPS (2 GB RAM / 16 GB SSD), Hack Club CDN (53.6 GB), PostgreSQL, dan LibreOffice.
           </p>
         </div>
 
         <button
           type="button"
-          class="px-3.5 py-2 text-xs font-medium bg-surface-elevated hover:bg-surface-hover border border-border text-ink-primary rounded-lg transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto"
+          class="px-3.5 py-2 text-xs font-medium bg-surface-elevated hover:bg-surface-hover border border-border text-ink-primary rounded-lg transition-colors inline-flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           @click="loadSystemData"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,24 +134,28 @@ onMounted(() => {
             </p>
           </div>
 
-          <!-- Database Card -->
+          <!-- Hack Club CDN Card -->
           <div class="bg-surface border border-border rounded-xl p-5 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-mono uppercase text-ink-muted">Database Engine</span>
-              <span class="text-xs font-bold font-mono text-accent-400 uppercase">Connected</span>
+              <span class="text-xs font-mono uppercase text-ink-muted">Hack Club CDN</span>
+              <span class="text-xs font-bold font-mono text-emerald-400 uppercase">
+                {{ cdn?.enabled ? 'Connected' : 'Offline' }}
+              </span>
             </div>
 
             <div class="text-2xl font-black font-mono text-ink-primary">
-              PostgreSQL 17
+              {{ cdn?.storage_used_mb || 0 }} <span class="text-xs font-normal text-ink-muted">/ {{ cdn?.storage_limit_gb || 50 }} GB</span>
             </div>
 
-            <div class="flex items-center gap-2 text-xs text-ink-secondary pt-1">
-              <span class="w-2 h-2 rounded-full bg-accent-400" />
-              <span>Connection Pool Aktif & Stabil</span>
+            <div class="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
+              <div
+                class="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                :style="{ width: `${Math.max(cdn?.usage_percentage || 1, 2)}%` }"
+              />
             </div>
 
             <p class="text-[11px] text-ink-muted">
-              Menangani session tokens, antrean skip-locked, tabel users, dan riwayat laporan.
+              Penyimpanan berkas cloud publik ultra-cepat untuk PDF, DOCX, dan aset laporan.
             </p>
           </div>
 
@@ -164,6 +189,59 @@ onMounted(() => {
           </div>
         </div>
 
+        <!-- CDN Management & Live Test -->
+        <div class="bg-surface border border-border rounded-xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-bold text-ink-primary uppercase font-mono tracking-wider flex items-center gap-2">
+                <svg class="w-4 h-4 text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Hack Club CDN Storage (50 GB Cloud Storage)
+              </h3>
+              <p class="text-xs text-ink-secondary mt-0.5">
+                Akun: <span class="font-mono text-ink-primary font-semibold">{{ cdn?.user?.name || 'Julian Mifta Yama Fauzan' }}</span> ({{ cdn?.user?.email || 'miftasigma11@gmail.com' }}) — Tier: {{ cdn?.user?.quota_tier || 'verified' }}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="px-4 py-2 text-xs font-semibold bg-accent-500 hover:bg-accent-600 text-white rounded-lg transition-colors flex items-center gap-2 self-start sm:self-auto cursor-pointer disabled:opacity-50"
+              :disabled="testingCdn"
+              @click="handleTestCdn"
+            >
+              <svg v-if="testingCdn" class="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span>{{ testingCdn ? 'Mengunggah ke CDN...' : 'Uji Probe Upload CDN' }}</span>
+            </button>
+          </div>
+
+          <div v-if="cdnTestResult" class="p-4 rounded-lg bg-surface-elevated border border-border/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-emerald-400 font-mono">✅ Probe Berhasil Diunggah ke CDN</span>
+              <span class="text-[11px] text-ink-muted">{{ cdnTestResult.size }} bytes</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <input
+                type="text"
+                readonly
+                :value="cdnTestResult.url"
+                class="flex-1 bg-surface border border-border px-3 py-1.5 rounded text-xs font-mono text-ink-secondary"
+              />
+              <a
+                :href="cdnTestResult.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-3 py-1.5 text-xs font-medium bg-surface-hover border border-border text-accent-400 hover:text-accent-300 rounded transition-colors inline-flex items-center gap-1"
+              >
+                Buka Berkas
+              </a>
+            </div>
+          </div>
+        </div>
+
         <!-- Infrastructure Details Table -->
         <div class="bg-surface border border-border rounded-xl p-5">
           <h3 class="text-sm font-bold text-ink-primary uppercase font-mono tracking-wider mb-4">
@@ -180,6 +258,14 @@ onMounted(() => {
               <span class="font-mono text-ink-primary font-semibold">Nuxt 3.16 / Vue 3 + Tailwind CSS</span>
             </div>
             <div class="py-3 flex items-center justify-between">
+              <span class="text-ink-secondary">Cloud CDN & File Distribution</span>
+              <span class="font-mono text-emerald-400 font-semibold">Hack Club CDN (53.6 GB Quota)</span>
+            </div>
+            <div class="py-3 flex items-center justify-between">
+              <span class="text-ink-secondary">Email OTP Provider</span>
+              <span class="font-mono text-ink-primary font-semibold">Resend API (<a href="https://resend.com" class="text-accent-400 hover:underline" target="_blank">resend.com</a>)</span>
+            </div>
+            <div class="py-3 flex items-center justify-between">
               <span class="text-ink-secondary">AI Reasoning Router</span>
               <span class="font-mono text-ink-primary font-semibold">9Router API (Gemini Flash / OpenAI compatible)</span>
             </div>
@@ -192,7 +278,7 @@ onMounted(() => {
               <span class="font-mono text-ink-primary font-semibold">Mayar (dengan mode Admin Free Bypass)</span>
             </div>
             <div class="py-3 flex items-center justify-between">
-              <span class="text-ink-secondary">Direktori Penyimpanan File</span>
+              <span class="text-ink-secondary">Direktori Penyimpanan File Lokal</span>
               <span class="font-mono text-ink-primary">{{ health?.storage_dir === 'accessible' ? 'storage/ (Accessible)' : 'storage/ (Unavailable)' }}</span>
             </div>
           </div>

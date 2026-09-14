@@ -103,7 +103,9 @@ pub fn create_router(state: AppState) -> Router {
         .route("/jobs/:id/retry", post(routes::admin::retry_job_handler))
         .route("/jobs/:id/cancel", post(routes::admin::cancel_job_handler))
         .route("/ai/playground", post(routes::admin::ai_playground_handler))
-        .route("/system/health", get(routes::admin::system_health_handler));
+        .route("/system/health", get(routes::admin::system_health_handler))
+        .route("/cdn/status", get(routes::admin::cdn_status_handler))
+        .route("/cdn/test-upload", post(routes::admin::cdn_test_upload_handler));
 
     let api_v1 = Router::new()
         .nest("/auth", auth_routes.clone())

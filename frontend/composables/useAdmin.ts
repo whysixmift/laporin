@@ -106,6 +106,14 @@ export const useAdmin = () => {
     return await api.get('/admin/system/health')
   }
 
+  const getCdnStatus = async (): Promise<any> => {
+    return await api.get('/admin/cdn/status')
+  }
+
+  const testCdnUpload = async (): Promise<any> => {
+    return await api.post('/admin/cdn/test-upload')
+  }
+
   return {
     loading,
     getMetrics,
@@ -122,6 +130,8 @@ export const useAdmin = () => {
     retryJob,
     cancelJob,
     runAiPlayground,
-    getSystemHealth
+    getSystemHealth,
+    getCdnStatus,
+    testCdnUpload
   }
 }

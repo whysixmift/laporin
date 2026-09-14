@@ -23,7 +23,7 @@ sha2 = "0.10"
 hex = "0.4"
 base64 = "0.22"
 rand = "0.8"
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls", "multipart"] }
 url = "2.5"
 urlencoding = "2.1"
 time = "0.3"

@@ -124,6 +124,14 @@ impl GenerationWorker {
         )
         .await?;
 
+        // 7.5 Optional: Stream to CDN if enabled
+        if state.cdn.is_enabled() {
+            let cdn_filename = format!("laporin_preview_{}.pdf", file_uuid);
+            if let Ok(upload) = state.cdn.upload_bytes(&cdn_filename, preview_bytes.clone(), Some("application/pdf")).await {
+                tracing::info!(report_id = %report_id, cdn_url = %upload.url, "Preview PDF published to Hack Club CDN");
+            }
+        }
+
         // 8. Complete job and update report status to preview_ready
         JobRepo::complete_generation_job(&state.db, job_id, &docx_str, &preview_str).await?;
         ReportRepo::update_status(&state.db, report_id, "preview_ready").await?;

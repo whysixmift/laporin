@@ -522,11 +522,77 @@ pub async fn system_health_handler(
     // Check storage dir
     let storage_exists = tokio::fs::metadata(&state.config.storage_root_dir).await.is_ok();
 
-
     Ok(Json(json!({
         "status": if db_ok && storage_exists { "healthy" } else { "degraded" },
         "database": if db_ok { "connected" } else { "disconnected" },
         "storage_dir": if storage_exists { "accessible" } else { "missing" },
+        "cdn_configured": state.cdn.is_enabled(),
         "timestamp": Utc::now()
     })))
 }
+
+// 16. GET /api/v1/admin/cdn/status
+pub async fn cdn_status_handler(
+    State(state): State<AppState>,
+    _admin: AdminUser,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let is_enabled = state.cdn.is_enabled();
+    if !is_enabled {
+        return Ok(Json(json!({
+            "enabled": false,
+            "message": "CDN belum dikonfigurasi. Set HACKCLUB_CDN_API_KEY untuk mengaktifkan."
+        })));
+    }
+
+    match state.cdn.get_quota().await {
+        Ok(quota) => Ok(Json(json!({
+            "enabled": true,
+            "provider": "Hack Club CDN",
+            "user": {
+                "id": quota.id,
+                "email": quota.email,
+                "name": quota.name,
+                "quota_tier": quota.quota_tier
+            },
+            "storage_used_bytes": quota.storage_used,
+            "storage_used_mb": (quota.storage_used as f64 / (1024.0 * 1024.0)).round(),
+            "storage_limit_bytes": quota.storage_limit,
+            "storage_limit_gb": (quota.storage_limit as f64 / (1024.0 * 1024.0 * 1024.0)).round(),
+            "usage_percentage": ((quota.storage_used as f64 / quota.storage_limit as f64) * 100.0)
+        }))),
+        Err(e) => Ok(Json(json!({
+            "enabled": true,
+            "error": e,
+            "message": "Gagal mengambil data kuota CDN"
+        })))
+    }
+}
+
+// 17. POST /api/v1/admin/cdn/test-upload
+pub async fn cdn_test_upload_handler(
+    State(state): State<AppState>,
+    _admin: AdminUser,
+) -> Result<Json<serde_json::Value>, AppError> {
+    if !state.cdn.is_enabled() {
+        return Err(AppError::ValidationError("CDN belum dikonfigurasi".into()));
+    }
+
+    let timestamp = Utc::now().to_rfc3339();
+    let content = format!(
+        "⚡ Laporin Hack Club CDN Health Check Probe\nTimestamp: {}\nStatus: Verified Active\nPlatform: Laporin PKL Generator\n",
+        timestamp
+    );
+    let filename = format!("laporin_probe_{}.txt", Utc::now().timestamp());
+
+    let res = state
+        .cdn
+        .upload_bytes(&filename, content.into_bytes(), Some("text/plain"))
+        .await
+        .map_err(|e| AppError::Internal(format!("CDN upload probe failed: {}", e)))?;
+
+    Ok(Json(json!({
+        "success": true,
+        "upload": res
+    })))
+}
+
