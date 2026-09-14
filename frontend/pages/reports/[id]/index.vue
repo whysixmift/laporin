@@ -1,11 +1,26 @@
 <script setup lang="ts">
-import type { JobInfo, Payment, Report } from '~/types/api'
+import type {
+  GeneratedSectionsUpdate,
+  JobInfo,
+  LogbookEntry,
+  LogbookEntryCreate,
+  Payment,
+  Report
+} from '~/types/api'
 
 const route = useRoute()
 const router = useRouter()
 const reportId = route.params.id as string
 
-const { getReport, downloadDocx, updateReport } = useReports()
+const {
+  getReport,
+  downloadDocx,
+  updateReport,
+  updateSections,
+  getLogbookEntries,
+  createLogbookEntry,
+  deleteLogbookEntry
+} = useReports()
 const { startResearch, getResearchStatus, startGeneration, getGenerationStatus, pollJob } = useReportJob()
 const { createPayment, getPayment, pollPaymentStatus } = usePayment()
 const { isAdmin } = useAuth()
@@ -21,6 +36,130 @@ const isPaying = ref(false)
 const isFreeUnlocking = ref(false)
 const currentPayment = ref<Payment | null>(null)
 const isDownloading = ref(false)
+
+// Logbook Subsystem State
+const logbookEntries = ref<LogbookEntry[]>([])
+const isLoadingLogbook = ref(false)
+const isLogbookModalOpen = ref(false)
+const isSavingLogbook = ref(false)
+const isDeletingLogbookId = ref<string | null>(null)
+const logbookForm = ref<LogbookEntryCreate>({
+  entry_date: new Date().toISOString().split('T')[0],
+  activity_title: '',
+  tasks_performed: '',
+  tools_technologies: '',
+  problems_encountered: '',
+  solutions_applied: '',
+  skills_learned: '',
+  evidence_notes: ''
+})
+
+const fetchLogbookEntries = async () => {
+  isLoadingLogbook.value = true
+  try {
+    const entries = await getLogbookEntries(reportId)
+    logbookEntries.value = entries
+  } catch (err: unknown) {
+    // Non-fatal
+  } finally {
+    isLoadingLogbook.value = false
+  }
+}
+
+const handleOpenLogbookModal = () => {
+  logbookForm.value = {
+    entry_date: new Date().toISOString().split('T')[0],
+    activity_title: '',
+    tasks_performed: '',
+    tools_technologies: '',
+    problems_encountered: '',
+    solutions_applied: '',
+    skills_learned: '',
+    evidence_notes: ''
+  }
+  isLogbookModalOpen.value = true
+}
+
+const handleSaveLogbookEntry = async () => {
+  if (!logbookForm.value.activity_title.trim() || !logbookForm.value.tasks_performed.trim()) {
+    toast.warning('Data Belum Lengkap', 'Judul kegiatan dan rincian tugas wajib diisi.')
+    return
+  }
+  isSavingLogbook.value = true
+  try {
+    await createLogbookEntry(reportId, logbookForm.value)
+    toast.success('Jurnal Tersimpan', 'Catatan kegiatan harian PKL berhasil ditambahkan.')
+    isLogbookModalOpen.value = false
+    await fetchLogbookEntries()
+    if (report.value) {
+      report.value.logbook_count = (report.value.logbook_count || 0) + 1
+    }
+  } catch (err: unknown) {
+    const apiErr = err as { message?: string }
+    toast.error('Gagal Menyimpan', apiErr.message || 'Tidak dapat menyimpan jurnal kegiatan.')
+  } finally {
+    isSavingLogbook.value = false
+  }
+}
+
+const handleDeleteLogbookEntry = async (entryId: string) => {
+  isDeletingLogbookId.value = entryId
+  try {
+    await deleteLogbookEntry(reportId, entryId)
+    toast.success('Jurnal Dihapus', 'Catatan jurnal kegiatan berhasil dihapus.')
+    await fetchLogbookEntries()
+    if (report.value && report.value.logbook_count) {
+      report.value.logbook_count = Math.max(0, report.value.logbook_count - 1)
+    }
+  } catch (err: unknown) {
+    const apiErr = err as { message?: string }
+    toast.error('Gagal Menghapus', apiErr.message || 'Terjadi kendala.')
+  } finally {
+    isDeletingLogbookId.value = null
+  }
+}
+
+// In-Place Chapter Editor State
+const isChapterEditorOpen = ref(false)
+const isSavingSections = ref(false)
+const activeSectionTab = ref<'cover' | 'introduction' | 'company_profile' | 'activities' | 'conclusion'>('introduction')
+const sectionsForm = ref<GeneratedSectionsUpdate>({
+  cover: '',
+  introduction: '',
+  company_profile: '',
+  activities: '',
+  conclusion: ''
+})
+
+const handleOpenChapterEditor = () => {
+  if (!report.value?.generated_sections) return
+  sectionsForm.value = {
+    cover: report.value.generated_sections.cover || '',
+    introduction: report.value.generated_sections.introduction || '',
+    company_profile: report.value.generated_sections.company_profile || '',
+    activities: report.value.generated_sections.activities || '',
+    conclusion: report.value.generated_sections.conclusion || ''
+  }
+  isChapterEditorOpen.value = true
+}
+
+const handleSaveSections = async () => {
+  isSavingSections.value = true
+  try {
+    const updated = await updateSections(reportId, sectionsForm.value)
+    if (report.value) {
+      report.value.generated_sections = updated
+    }
+    toast.success('Bab Disimpan', 'Perubahan naskah disimpan dan file dokumen DOCX berhasil diregenerasi.')
+    isChapterEditorOpen.value = false
+    await fetchReportData()
+  } catch (err: unknown) {
+    const apiErr = err as { message?: string }
+    toast.error('Gagal Menyimpan', apiErr.message || 'Terjadi kesalahan saat menyimpan perubahan naskah.')
+  } finally {
+    isSavingSections.value = false
+  }
+}
 
 const handleAdminFreeUnlock = async () => {
   if (!report.value) return
@@ -126,6 +265,7 @@ const fetchReportData = async () => {
   try {
     const data = await getReport(reportId)
     report.value = data
+    await fetchLogbookEntries()
 
     // Resume polling if active job states
     if (data.status === 'researching') {
@@ -327,6 +467,21 @@ const handleDownloadDocx = async () => {
       <div class="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap">
         <BaseBadge v-if="report" :status="report.status" size="md" />
 
+        <!-- Edit Chapters In-Place Button -->
+        <button
+          v-if="report && report.generated_sections"
+          type="button"
+          class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface-elevated hover:bg-surface border border-border text-ink-primary transition-colors inline-flex items-center gap-1.5 shadow-subtle"
+          title="Edit bagian bab laporan secara langsung"
+          @click="handleOpenChapterEditor"
+        >
+          <svg class="w-4 h-4 text-ink-secondary" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+          </svg>
+          <span>Edit Bab / Naskah</span>
+          <span v-if="report.generated_sections.is_user_edited" class="px-1.5 py-0.2 rounded text-[10px] bg-accent-500/20 text-accent-300 font-mono">Diedit</span>
+        </button>
+
         <!-- Admin Quick Unlock Button -->
         <button
           v-if="isAdmin && report && report.status !== 'unlocked' && report.status !== 'paid'"
@@ -444,6 +599,93 @@ const handleDownloadDocx = async () => {
                 {{ report.internship.description || 'Tidak ada deskripsi kegiatan.' }}
               </p>
             </div>
+          </div>
+        </div>
+
+        <!-- PKL Daily Logbook Subsystem Card -->
+        <div class="p-5 sm:p-6 bg-surface rounded-xl border border-border space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-[10px] uppercase tracking-wider text-accent-400 font-bold">Jurnal Kegiatan Harian (Logbook)</span>
+                <span v-if="logbookEntries.length" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-accent-500/10 text-accent-400 border border-accent-500/20">
+                  {{ logbookEntries.length }} Catatan
+                </span>
+              </div>
+              <p class="text-xs text-ink-secondary">
+                Catat aktivitas harian PKL Anda. Catatan ini akan disintesis langsung ke dalam <strong>Bab III (Pelaksanaan Kegiatan)</strong> tanpa rekayasa.
+              </p>
+            </div>
+
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              class="w-full sm:w-auto justify-center shrink-0"
+              @click="handleOpenLogbookModal"
+            >
+              <template #leading>
+                <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+              </template>
+              Tambah Catatan Logbook
+            </BaseButton>
+          </div>
+
+          <!-- Entries Timeline List -->
+          <div v-if="isLoadingLogbook" class="py-6 text-center text-xs text-ink-muted">
+            Memuat catatan jurnal...
+          </div>
+          <div v-else-if="logbookEntries.length" class="space-y-3">
+            <div
+              v-for="entry in logbookEntries"
+              :key="entry.id"
+              class="p-4 bg-surface-subtle rounded-lg border border-border-subtle space-y-2.5 text-xs transition-colors hover:border-border"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="space-y-0.5">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-surface border border-border text-ink-primary font-semibold">
+                      {{ entry.entry_date }}
+                    </span>
+                    <span class="font-medium text-ink-primary text-sm">{{ entry.activity_title }}</span>
+                  </div>
+                  <p class="text-ink-secondary leading-relaxed pt-1 whitespace-pre-line">{{ entry.tasks_performed }}</p>
+                </div>
+
+                <button
+                  type="button"
+                  :disabled="isDeletingLogbookId === entry.id"
+                  class="text-ink-muted hover:text-danger-400 p-1 rounded transition-colors shrink-0"
+                  title="Hapus catatan ini"
+                  @click="handleDeleteLogbookEntry(entry.id)"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Metadata pills -->
+              <div v-if="entry.tools_technologies || entry.problems_encountered || entry.skills_learned" class="pt-2 border-t border-border-subtle/60 flex flex-wrap gap-2 text-[11px]">
+                <span v-if="entry.tools_technologies" class="text-ink-muted bg-surface px-2 py-0.5 rounded border border-border/40">
+                  <strong class="text-ink-secondary">Alat:</strong> {{ entry.tools_technologies }}
+                </span>
+                <span v-if="entry.problems_encountered" class="text-ink-muted bg-surface px-2 py-0.5 rounded border border-border/40">
+                  <strong class="text-ink-secondary">Kendala:</strong> {{ entry.problems_encountered }}
+                </span>
+                <span v-if="entry.solutions_applied" class="text-ink-muted bg-surface px-2 py-0.5 rounded border border-border/40">
+                  <strong class="text-ink-secondary">Solusi:</strong> {{ entry.solutions_applied }}
+                </span>
+                <span v-if="entry.skills_learned" class="text-ink-muted bg-surface px-2 py-0.5 rounded border border-border/40">
+                  <strong class="text-ink-secondary">Kompetensi:</strong> {{ entry.skills_learned }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-xs text-ink-muted text-center py-6 bg-surface-subtle rounded-lg border border-dashed border-border-subtle space-y-2">
+            <p>Belum ada catatan logbook harian.</p>
+            <p class="text-[11px] text-ink-faint">Tambahkan jurnal kegiatan harian agar Bab III tersusun rinci berdasarkan aktivitas nyata Anda.</p>
           </div>
         </div>
       </div>
@@ -782,6 +1024,205 @@ const handleDownloadDocx = async () => {
           @click="handleSaveEdit"
         >
           Simpan Perubahan
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- In-Place Chapter Editor Modal -->
+    <BaseModal
+      v-model="isChapterEditorOpen"
+      title="Editor Bab Laporan PKL"
+      max-width="2xl"
+    >
+      <div class="space-y-6">
+        <!-- Notice banner -->
+        <div class="p-3 bg-surface-subtle border border-border-subtle rounded-lg text-xs text-ink-secondary flex items-start gap-2">
+          <svg class="w-4 h-4 text-accent-400 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          <p>
+            Perubahan yang Anda simpan akan langsung memperbarui naskah laporan dan file dokumen DOCX tanpa menghilangkan fakta riset primer.
+          </p>
+        </div>
+
+        <!-- Section Navigation Tabs -->
+        <div class="flex items-center gap-1 border-b border-border pb-2 overflow-x-auto text-xs font-mono">
+          <button
+            v-for="tab in [
+              { id: 'cover', label: 'Sampul' },
+              { id: 'introduction', label: 'Bab I: Pendahuluan' },
+              { id: 'company_profile', label: 'Bab II: Profil DU/DI' },
+              { id: 'activities', label: 'Bab III: Kegiatan PKL' },
+              { id: 'conclusion', label: 'Bab IV: Penutup' }
+            ]"
+            :key="tab.id"
+            type="button"
+            :class="[
+              'px-3 py-1.5 rounded transition-colors whitespace-nowrap',
+              activeSectionTab === tab.id
+                ? 'bg-surface text-ink-primary font-bold border border-border'
+                : 'text-ink-muted hover:text-ink-secondary'
+            ]"
+            @click="activeSectionTab = tab.id as any"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <!-- Editor Tab Content -->
+        <div class="space-y-2">
+          <div v-if="activeSectionTab === 'cover'" class="space-y-2">
+            <label class="text-xs font-medium text-ink-primary">Halaman Sampul (Cover)</label>
+            <BaseTextarea
+              v-model="sectionsForm.cover"
+              :rows="12"
+              placeholder="Format naskah sampul laporan..."
+              class="font-mono text-xs leading-relaxed"
+            />
+          </div>
+
+          <div v-else-if="activeSectionTab === 'introduction'" class="space-y-2">
+            <label class="text-xs font-medium text-ink-primary">BAB I: PENDAHULUAN</label>
+            <BaseTextarea
+              v-model="sectionsForm.introduction"
+              :rows="14"
+              placeholder="1.1 Latar Belakang PKL, 1.2 Tujuan PKL, 1.3 Tujuan Pembuatan Laporan, 1.4 Sistematika..."
+              class="text-xs leading-relaxed"
+            />
+          </div>
+
+          <div v-else-if="activeSectionTab === 'company_profile'" class="space-y-2">
+            <label class="text-xs font-medium text-ink-primary">BAB II: GAMBARAN UMUM PERUSAHAAN</label>
+            <BaseTextarea
+              v-model="sectionsForm.company_profile"
+              :rows="14"
+              placeholder="2.1 Sejarah Pendirian, 2.2 Visi & Misi, 2.3 Struktur Organisasi, 2.4 Jam Kerja & K3..."
+              class="text-xs leading-relaxed"
+            />
+          </div>
+
+          <div v-else-if="activeSectionTab === 'activities'" class="space-y-2">
+            <label class="text-xs font-medium text-ink-primary">BAB III: PELAKSANAAN PRAKTEK DI PERUSAHAAN</label>
+            <BaseTextarea
+              v-model="sectionsForm.activities"
+              :rows="16"
+              placeholder="3.1 Waktu & Tempat, 3.2 Jenis Kegiatan, 3.3 Langkah Kerja Terperinci, 3.4 Hambatan & Solusi..."
+              class="text-xs leading-relaxed"
+            />
+          </div>
+
+          <div v-else-if="activeSectionTab === 'conclusion'" class="space-y-2">
+            <label class="text-xs font-medium text-ink-primary">BAB IV: PENUTUP</label>
+            <BaseTextarea
+              v-model="sectionsForm.conclusion"
+              :rows="12"
+              placeholder="4.1 Kesimpulan, 4.2 Saran untuk Perusahaan dan Sekolah..."
+              class="text-xs leading-relaxed"
+            />
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <BaseButton
+          variant="subtle"
+          :disabled="isSavingSections"
+          @click="isChapterEditorOpen = false"
+        >
+          Batal
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          :loading="isSavingSections"
+          @click="handleSaveSections"
+        >
+          Simpan Perubahan Bab
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- PKL Logbook Entry Modal -->
+    <BaseModal
+      v-model="isLogbookModalOpen"
+      title="Tambah Catatan Logbook PKL"
+      max-width="lg"
+    >
+      <form class="space-y-4" @submit.prevent="handleSaveLogbookEntry">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <BaseInput
+            v-model="logbookForm.entry_date"
+            type="date"
+            label="Tanggal Kegiatan *"
+            required
+          />
+          <BaseInput
+            v-model="logbookForm.activity_title"
+            label="Judul / Topik Kegiatan *"
+            placeholder="Contoh: Konfigurasi Jaringan VLAN"
+            required
+          />
+        </div>
+
+        <BaseTextarea
+          v-model="logbookForm.tasks_performed"
+          label="Uraian Rincian Tugas yang Dikerjakan *"
+          placeholder="Tuliskan langkah-langkah nyata atau tugas yang Anda selesaikan..."
+          :rows="4"
+          required
+        />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <BaseInput
+            v-model="logbookForm.tools_technologies"
+            label="Peralatan / Software yang Digunakan"
+            placeholder="Contoh: Cisco Packet Tracer, Wireshark, Putty"
+            hint="Opsional"
+          />
+          <BaseInput
+            v-model="logbookForm.skills_learned"
+            label="Kompetensi / Keterampilan Baru"
+            placeholder="Contoh: Subnetting, CLI Switching"
+            hint="Opsional"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <BaseInput
+            v-model="logbookForm.problems_encountered"
+            label="Kendala yang Dihadapi"
+            placeholder="Contoh: Konflik IP Address"
+            hint="Opsional"
+          />
+          <BaseInput
+            v-model="logbookForm.solutions_applied"
+            label="Solusi yang Diterapkan"
+            placeholder="Contoh: Menata ulang pool DHCP"
+            hint="Opsional"
+          />
+        </div>
+
+        <BaseInput
+          v-model="logbookForm.evidence_notes"
+          label="Catatan Bukti / Dokumentasi"
+          placeholder="Contoh: Foto dokumentasi nomor 04 di lampiran"
+          hint="Opsional"
+        />
+      </form>
+
+      <template #footer>
+        <BaseButton
+          variant="subtle"
+          :disabled="isSavingLogbook"
+          @click="isLogbookModalOpen = false"
+        >
+          Batal
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          :loading="isSavingLogbook"
+          @click="handleSaveLogbookEntry"
+        >
+          Simpan Catatan
         </BaseButton>
       </template>
     </BaseModal>

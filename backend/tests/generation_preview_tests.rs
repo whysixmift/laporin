@@ -72,6 +72,7 @@ async fn test_docx_placeholder_replacement() {
         company_profile: "COMPANY PROFILE SAMPLE".into(),
         activities: "ACTIVITIES SAMPLE".into(),
         conclusion: "CONCLUSION SAMPLE".into(),
+        is_user_edited: Some(false),
     };
 
     let rendered_bytes = DocxService::render_report(

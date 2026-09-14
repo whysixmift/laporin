@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::db::DbPool;
 use crate::services::{
     CaptchaService, CdnService, CrawlerService, EmailService, LlmService, OAuthService,
-    PaymentService,
+    PaymentService, SearchEngineService,
 };
 use crate::storage::Storage;
 use std::collections::HashMap;
@@ -63,6 +63,7 @@ pub struct AppState {
     pub storage: Storage,
     pub captcha: CaptchaService,
     pub oauth: OAuthService,
+    pub search: SearchEngineService,
     pub crawler: CrawlerService,
     pub llm: LlmService,
     pub payment: PaymentService,
@@ -76,6 +77,7 @@ impl AppState {
         Self {
             captcha: CaptchaService::new(config.clone()),
             oauth: OAuthService::new(config.clone()),
+            search: SearchEngineService::new(config.clone()),
             crawler: CrawlerService::new(),
             llm: LlmService::new(config.clone()),
             payment: PaymentService::new(config.clone()),
@@ -88,3 +90,4 @@ impl AppState {
         }
     }
 }
+

@@ -21,6 +21,9 @@ pub struct Config {
     pub mayar_webhook_secret: String,
     pub mayar_api_url: String,
     pub storage_root_dir: PathBuf,
+    pub search_provider: String,
+    pub search_api_key: String,
+    pub search_api_url: String,
     pub job_research_concurrency: usize,
     pub job_generation_concurrency: usize,
     pub auth_rate_limit_per_min: u32,
@@ -79,6 +82,12 @@ impl Config {
                 env::var("STORAGE_ROOT_DIR")
                     .unwrap_or_else(|_| "/home/avrjulian/laporin/storage".to_string()),
             ),
+            search_provider: env::var("SEARCH_PROVIDER")
+                .unwrap_or_else(|_| "duckduckgo_html".to_string()),
+            search_api_key: env::var("SEARCH_API_KEY")
+                .unwrap_or_else(|_| "".to_string()),
+            search_api_url: env::var("SEARCH_API_URL")
+                .unwrap_or_else(|_| "https://html.duckduckgo.com/html/".to_string()),
             job_research_concurrency: env::var("JOB_RESEARCH_CONCURRENCY")
                 .unwrap_or_else(|_| "2".to_string())
                 .parse()

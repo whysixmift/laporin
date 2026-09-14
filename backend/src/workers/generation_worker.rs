@@ -65,11 +65,12 @@ impl GenerationWorker {
             .as_ref()
             .ok_or("Missing internship info")?;
         let facts = report.research_facts.unwrap_or_default();
+        let logbook_entries = ReportRepo::list_logbook_entries(&state.db, report_id).await.unwrap_or_default();
 
         // 2. Generate sections with LLM
         let sections = state
             .llm
-            .generate_sections(&report.title, student, internship, &facts)
+            .generate_sections(&report.title, student, internship, &facts, &logbook_entries)
             .await?;
 
         // 3. Save generated sections

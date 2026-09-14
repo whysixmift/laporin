@@ -47,6 +47,19 @@ pub fn create_router(state: AppState) -> Router {
             get(routes::reports::download_report_handler),
         )
         .route(
+            "/:id/sections",
+            patch(routes::reports::update_report_sections_handler),
+        )
+        .route(
+            "/:id/logbook",
+            get(routes::reports::list_logbook_entries_handler)
+                .post(routes::reports::create_logbook_entry_handler),
+        )
+        .route(
+            "/:id/logbook/:entry_id",
+            delete(routes::reports::delete_logbook_entry_handler),
+        )
+        .route(
             "/:id/free-unlock",
             post(routes::reports::free_unlock_handler),
         )

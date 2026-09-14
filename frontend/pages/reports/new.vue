@@ -8,6 +8,11 @@ const toast = useToast()
 const step = ref(1)
 const loading = ref(false)
 const errorMessage = ref('')
+const hasSavedDraft = ref(false)
+const draftRecovered = ref(false)
+const lastSavedTime = ref<string | null>(null)
+
+const DRAFT_STORAGE_KEY = 'laporin_new_report_draft_v1'
 
 // Form State
 const title = ref('')
@@ -29,6 +34,98 @@ const internship = ref({
   company_supervisor: '',
   school_supervisor: '',
   description: ''
+})
+
+// Autosave logic
+const saveDraftToStorage = () => {
+  if (typeof window === 'undefined') return
+  const hasContent =
+    title.value.trim() ||
+    student.value.full_name.trim() ||
+    student.value.school.trim() ||
+    internship.value.company_name.trim() ||
+    internship.value.description.trim()
+
+  if (hasContent) {
+    const draftData = {
+      title: title.value,
+      student: student.value,
+      internship: internship.value,
+      step: step.value,
+      savedAt: new Date().toISOString()
+    }
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData))
+    lastSavedTime.value = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  }
+}
+
+// Watch changes to autosave (with debounce)
+let autosaveTimeout: ReturnType<typeof setTimeout> | null = null
+watch(
+  [title, student, internship, step],
+  () => {
+    if (autosaveTimeout) clearTimeout(autosaveTimeout)
+    autosaveTimeout = setTimeout(() => {
+      saveDraftToStorage()
+    }, 600)
+  },
+  { deep: true }
+)
+
+const checkExistingDraft = () => {
+  if (typeof window === 'undefined') return
+  const saved = localStorage.getItem(DRAFT_STORAGE_KEY)
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      const hasContent =
+        parsed.title?.trim() ||
+        parsed.student?.full_name?.trim() ||
+        parsed.student?.school?.trim() ||
+        parsed.internship?.company_name?.trim() ||
+        parsed.internship?.description?.trim()
+
+      if (hasContent) {
+        hasSavedDraft.value = true
+        if (parsed.savedAt) {
+          const date = new Date(parsed.savedAt)
+          lastSavedTime.value = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        }
+      }
+    } catch {
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
+    }
+  }
+}
+
+const restoreDraft = () => {
+  if (typeof window === 'undefined') return
+  const saved = localStorage.getItem(DRAFT_STORAGE_KEY)
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      if (parsed.title) title.value = parsed.title
+      if (parsed.student) student.value = { ...student.value, ...parsed.student }
+      if (parsed.internship) internship.value = { ...internship.value, ...parsed.internship }
+      if (parsed.step) step.value = parsed.step
+      hasSavedDraft.value = false
+      draftRecovered.value = true
+      toast.info('Draf Dipulihkan', 'Data formulir dari sesi sebelumnya telah dimuat.')
+    } catch {
+      toast.error('Gagal Memulihkan', 'Format data draf tidak valid.')
+    }
+  }
+}
+
+const discardDraft = () => {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(DRAFT_STORAGE_KEY)
+  hasSavedDraft.value = false
+  toast.info('Draf Dihapus', 'Draf lokal telah dibersihkan.')
+}
+
+onMounted(() => {
+  checkExistingDraft()
 })
 
 // Validation for each step
@@ -116,6 +213,9 @@ const handleSubmit = async () => {
 
   try {
     const report = await createReport(payload)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(DRAFT_STORAGE_KEY)
+    }
     toast.success('Draf Dibuat', 'Draf laporan PKL berhasil dibuat. Lanjutkan ke tahap riset.')
     router.push(`/reports/${report.id}`)
   } catch (err: unknown) {
@@ -131,10 +231,16 @@ const handleSubmit = async () => {
   <div class="max-w-2xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-10">
     <!-- Header -->
     <div class="space-y-1">
-      <div class="flex items-center gap-2 text-xs text-ink-muted">
-        <NuxtLink to="/dashboard" class="hover:text-ink-secondary">Laporan Saya</NuxtLink>
-        <span class="text-ink-faint">/</span>
-        <span class="text-ink-secondary">Buat Draf</span>
+      <div class="flex items-center justify-between text-xs text-ink-muted">
+        <div class="flex items-center gap-2">
+          <NuxtLink to="/dashboard" class="hover:text-ink-secondary">Laporan Saya</NuxtLink>
+          <span class="text-ink-faint">/</span>
+          <span class="text-ink-secondary">Buat Draf</span>
+        </div>
+        <div v-if="lastSavedTime" class="flex items-center gap-1.5 text-[11px] text-ink-muted font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-accent-400"></span>
+          <span>Autosave: {{ lastSavedTime }}</span>
+        </div>
       </div>
       <h1 class="text-2xl font-serif font-normal text-ink-primary">
         Formulir Laporan PKL
@@ -142,6 +248,28 @@ const handleSubmit = async () => {
       <p class="text-xs text-ink-muted">
         Lengkapi data berikut untuk menyusun naskah akademik yang terstruktur.
       </p>
+    </div>
+
+    <!-- Draft Recovery Banner -->
+    <div
+      v-if="hasSavedDraft"
+      class="p-4 rounded border border-accent-500/30 bg-accent-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+    >
+      <div class="space-y-0.5">
+        <div class="font-medium text-ink-primary flex items-center gap-2">
+          <span>Ditemukan Draf Tersimpan</span>
+          <span v-if="lastSavedTime" class="text-[10px] font-mono text-ink-muted">({{ lastSavedTime }})</span>
+        </div>
+        <p class="text-ink-secondary">Apakah Anda ingin memulihkan isian formulir dari sesi sebelumnya?</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <BaseButton variant="subtle" size="sm" @click="discardDraft">
+          Buang
+        </BaseButton>
+        <BaseButton variant="primary" size="sm" @click="restoreDraft">
+          Pulihkan Draf
+        </BaseButton>
+      </div>
     </div>
 
     <!-- Stepper Navigation (Quiet Editorial Tabs) -->

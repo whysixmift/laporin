@@ -1,7 +1,11 @@
 use crate::db::report_repo::ReportRepo;
-use crate::domain::report::{Report, ReportCreate, ReportUpdate};
+use crate::domain::report::{
+    GeneratedSections, GeneratedSectionsUpdate, LogbookEntry, LogbookEntryCreate, Report,
+    ReportCreate, ReportUpdate,
+};
 use crate::errors::AppError;
 use crate::middleware::AuthenticatedUser;
+use crate::services::{DocxService, PreviewService};
 use crate::state::AppState;
 use axum::{
     Json,
@@ -256,5 +260,144 @@ pub async fn free_unlock_handler(
         "status": "unlocked",
         "report_id": id
     })))
+}
+
+pub async fn update_report_sections_handler(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+    Json(update): Json<GeneratedSectionsUpdate>,
+) -> Result<Json<GeneratedSections>, AppError> {
+    let (report, owner_id) = ReportRepo::get_report_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
+
+    if owner_id != auth.user_id && auth.role != "admin" {
+        return Err(AppError::Forbidden(
+            "You do not have access to edit this report".into(),
+        ));
+    }
+
+    let updated_sections = ReportRepo::update_generated_sections(&state.db, id, update).await?;
+
+    // Re-render DOCX and preview if report has student and internship details
+    if let (Some(student), Some(internship)) = (&report.student, &report.internship) {
+        let template_path = state.storage.template_path();
+        let _ = DocxService::ensure_default_template(&template_path);
+        if let Ok(template_bytes) = state.storage.read_file(&template_path) {
+            if let Ok(docx_bytes) = DocxService::render_report(
+                &template_bytes,
+                &report.title,
+                &Some(student.clone()),
+                &Some(internship.clone()),
+                &Some(updated_sections.clone()),
+            ) {
+                let file_uuid = Uuid::new_v4();
+                let docx_out_path = state.storage.report_docx_path(id, file_uuid);
+                if state.storage.write_file(&docx_out_path, &docx_bytes).is_ok() {
+                    let docx_str = docx_out_path.to_str().unwrap_or_default().to_string();
+                    let _ = ReportRepo::save_file_entry(
+                        &state.db,
+                        id,
+                        "docx",
+                        &docx_str,
+                        docx_bytes.len() as i64,
+                    )
+                    .await;
+
+                    // Convert to preview PDF as well
+                    let preview_out_path = state.storage.report_preview_path(id, file_uuid);
+                    let scratch_dir = state.storage.temp_job_dir(file_uuid);
+                    if PreviewService::convert_docx_to_pdf(&docx_out_path, &preview_out_path, &scratch_dir)
+                        .await
+                        .is_ok()
+                    {
+                        let _ = state.storage.delete_dir(&scratch_dir);
+                        if let Ok(preview_bytes) = state.storage.read_file(&preview_out_path) {
+                            let preview_str = preview_out_path.to_str().unwrap_or_default().to_string();
+                            let _ = ReportRepo::save_file_entry(
+                                &state.db,
+                                id,
+                                "preview",
+                                &preview_str,
+                                preview_bytes.len() as i64,
+                            )
+                            .await;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(Json(updated_sections))
+}
+
+pub async fn create_logbook_entry_handler(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<LogbookEntryCreate>,
+) -> Result<(StatusCode, Json<LogbookEntry>), AppError> {
+    let (_, owner_id) = ReportRepo::get_report_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
+
+    if owner_id != auth.user_id && auth.role != "admin" {
+        return Err(AppError::Forbidden(
+            "You do not have access to this report".into(),
+        ));
+    }
+
+    if payload.activity_title.trim().is_empty() || payload.tasks_performed.trim().is_empty() {
+        return Err(AppError::ValidationError(
+            "Judul kegiatan dan rincian tugas wajib diisi".into(),
+        ));
+    }
+
+    let entry = ReportRepo::create_logbook_entry(&state.db, id, payload).await?;
+    Ok((StatusCode::CREATED, Json(entry)))
+}
+
+pub async fn list_logbook_entries_handler(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<LogbookEntry>>, AppError> {
+    let (_, owner_id) = ReportRepo::get_report_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
+
+    if owner_id != auth.user_id && auth.role != "admin" {
+        return Err(AppError::Forbidden(
+            "You do not have access to this report".into(),
+        ));
+    }
+
+    let entries = ReportRepo::list_logbook_entries(&state.db, id).await?;
+    Ok(Json(entries))
+}
+
+pub async fn delete_logbook_entry_handler(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path((id, entry_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let (_, owner_id) = ReportRepo::get_report_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Report not found".into()))?;
+
+    if owner_id != auth.user_id && auth.role != "admin" {
+        return Err(AppError::Forbidden(
+            "You do not have access to this report".into(),
+        ));
+    }
+
+    let deleted = ReportRepo::delete_logbook_entry(&state.db, id, entry_id).await?;
+    if !deleted {
+        return Err(AppError::NotFound("Logbook entry not found".into()));
+    }
+
+    Ok(Json(json!({ "message": "Logbook entry deleted successfully" })))
 }
 

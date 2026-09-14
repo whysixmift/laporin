@@ -118,6 +118,13 @@ export const useApi = () => {
     })
   }
 
+  const delete_ = <T>(endpoint: string, options?: RequestInit) => {
+    return request<T>(endpoint, {
+      ...options,
+      method: 'DELETE'
+    })
+  }
+
   const getBlob = async (endpoint: string): Promise<Blob> => {
     const url = endpoint.startsWith('http') ? endpoint : `${apiBase}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`
     const response = await fetch(url, {
@@ -147,6 +154,7 @@ export const useApi = () => {
     get,
     post,
     patch,
+    delete: delete_,
     getBlob
   }
 }

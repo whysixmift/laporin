@@ -111,6 +111,60 @@ pub struct GeneratedSections {
     pub company_profile: String,
     pub activities: String,
     pub conclusion: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_user_edited: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeneratedSectionsUpdate {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cover: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub introduction: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub company_profile: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub activities: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conclusion: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogbookEntry {
+    pub id: Uuid,
+    pub report_id: Uuid,
+    pub entry_date: NaiveDate,
+    pub activity_title: String,
+    pub tasks_performed: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools_technologies: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub problems_encountered: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub solutions_applied: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skills_learned: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogbookEntryCreate {
+    pub entry_date: NaiveDate,
+    pub activity_title: String,
+    pub tasks_performed: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools_technologies: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub problems_encountered: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub solutions_applied: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skills_learned: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_notes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -145,6 +199,8 @@ pub struct Report {
     pub generated_sections: Option<GeneratedSections>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub generated_doc_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub logbook_count: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -159,4 +215,5 @@ pub struct AdminReportSummary {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
 

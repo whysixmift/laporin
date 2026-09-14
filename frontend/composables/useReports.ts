@@ -1,4 +1,8 @@
 import type {
+  GeneratedSections,
+  GeneratedSectionsUpdate,
+  LogbookEntry,
+  LogbookEntryCreate,
   Report,
   ReportCreate,
   ReportStatus,
@@ -25,6 +29,22 @@ export const useReports = () => {
     await api.patch(`/reports/${id}`, payload)
   }
 
+  const updateSections = async (id: string, payload: GeneratedSectionsUpdate): Promise<GeneratedSections> => {
+    return await api.patch<GeneratedSections>(`/reports/${id}/sections`, payload)
+  }
+
+  const getLogbookEntries = async (id: string): Promise<LogbookEntry[]> => {
+    return await api.get<LogbookEntry[]>(`/reports/${id}/logbook`)
+  }
+
+  const createLogbookEntry = async (id: string, payload: LogbookEntryCreate): Promise<LogbookEntry> => {
+    return await api.post<LogbookEntry>(`/reports/${id}/logbook`, payload)
+  }
+
+  const deleteLogbookEntry = async (id: string, entryId: string): Promise<void> => {
+    await api.delete(`/reports/${id}/logbook/${entryId}`)
+  }
+
   const downloadDocx = async (id: string, filename?: string): Promise<void> => {
     const blob = await api.getBlob(`/reports/${id}/download`)
     const url = window.URL.createObjectURL(blob)
@@ -42,6 +62,10 @@ export const useReports = () => {
     getReport,
     createReport,
     updateReport,
+    updateSections,
+    getLogbookEntries,
+    createLogbookEntry,
+    deleteLogbookEntry,
     downloadDocx
   }
 }

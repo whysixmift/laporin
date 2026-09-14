@@ -1,12 +1,14 @@
 use crate::domain::report::{
-    AdminReportSummary, GeneratedSections, InternshipInfo, Report, ReportCreate, ReportUpdate,
-    ResearchFact, ResearchSource, StudentInfo,
+    AdminReportSummary, GeneratedSections, GeneratedSectionsUpdate, InternshipInfo, LogbookEntry,
+    LogbookEntryCreate, Report, ReportCreate, ReportUpdate, ResearchFact, ResearchSource,
+    StudentInfo,
 };
 use chrono::{DateTime, Utc};
 use sqlx::types::BigDecimal;
 use sqlx::{Pool, Postgres};
 use std::str::FromStr;
 use uuid::Uuid;
+
 
 pub struct ReportRepo;
 
@@ -95,6 +97,7 @@ impl ReportRepo {
             research_facts: Some(vec![]),
             generated_sections: None,
             generated_doc_path: None,
+            logbook_count: Some(0),
         })
     }
 
@@ -182,7 +185,7 @@ impl ReportRepo {
         let sections = sqlx::query_as!(
             GeneratedSections,
             r#"
-            SELECT cover, introduction, company_profile, activities, conclusion
+            SELECT cover, introduction, company_profile, activities, conclusion, is_user_edited
             FROM report_generated_sections
             WHERE report_id = $1
             "#,
@@ -204,6 +207,18 @@ impl ReportRepo {
         .fetch_optional(pool)
         .await?;
 
+        // Fetch logbook entries count
+        let logbook_count_row = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as count
+            FROM report_logbook_entries
+            WHERE report_id = $1
+            "#,
+            report_id
+        )
+        .fetch_one(pool)
+        .await?;
+
         let report = Report {
             id: project.id,
             title: project.title,
@@ -215,6 +230,7 @@ impl ReportRepo {
             research_facts: Some(facts),
             generated_sections: sections,
             generated_doc_path: file_row.map(|f| f.path),
+            logbook_count: logbook_count_row.count,
         };
 
         Ok(Some((report, project.user_id)))
@@ -403,16 +419,18 @@ impl ReportRepo {
         report_id: Uuid,
         sections: &GeneratedSections,
     ) -> Result<(), sqlx::Error> {
+        let is_user_edited = sections.is_user_edited.unwrap_or(false);
         sqlx::query!(
             r#"
-            INSERT INTO report_generated_sections (report_id, cover, introduction, company_profile, activities, conclusion, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, now())
+            INSERT INTO report_generated_sections (report_id, cover, introduction, company_profile, activities, conclusion, is_user_edited, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, now())
             ON CONFLICT (report_id) DO UPDATE
             SET cover = EXCLUDED.cover,
                 introduction = EXCLUDED.introduction,
                 company_profile = EXCLUDED.company_profile,
                 activities = EXCLUDED.activities,
                 conclusion = EXCLUDED.conclusion,
+                is_user_edited = EXCLUDED.is_user_edited,
                 updated_at = now()
             "#,
             report_id,
@@ -420,12 +438,164 @@ impl ReportRepo {
             sections.introduction,
             sections.company_profile,
             sections.activities,
-            sections.conclusion
+            sections.conclusion,
+            is_user_edited
         )
         .execute(pool)
         .await?;
 
         Ok(())
+    }
+
+    pub async fn update_generated_sections(
+        pool: &Pool<Postgres>,
+        report_id: Uuid,
+        update: GeneratedSectionsUpdate,
+    ) -> Result<GeneratedSections, sqlx::Error> {
+        let existing = sqlx::query_as!(
+            GeneratedSections,
+            r#"
+            SELECT cover, introduction, company_profile, activities, conclusion, is_user_edited
+            FROM report_generated_sections
+            WHERE report_id = $1
+            "#,
+            report_id
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        let updated = match existing {
+            Some(curr) => GeneratedSections {
+                cover: update.cover.unwrap_or(curr.cover),
+                introduction: update.introduction.unwrap_or(curr.introduction),
+                company_profile: update.company_profile.unwrap_or(curr.company_profile),
+                activities: update.activities.unwrap_or(curr.activities),
+                conclusion: update.conclusion.unwrap_or(curr.conclusion),
+                is_user_edited: Some(true),
+            },
+            None => GeneratedSections {
+                cover: update.cover.unwrap_or_default(),
+                introduction: update.introduction.unwrap_or_default(),
+                company_profile: update.company_profile.unwrap_or_default(),
+                activities: update.activities.unwrap_or_default(),
+                conclusion: update.conclusion.unwrap_or_default(),
+                is_user_edited: Some(true),
+            },
+        };
+
+        sqlx::query!(
+            r#"
+            INSERT INTO report_generated_sections (report_id, cover, introduction, company_profile, activities, conclusion, is_user_edited, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, TRUE, now())
+            ON CONFLICT (report_id) DO UPDATE
+            SET cover = EXCLUDED.cover,
+                introduction = EXCLUDED.introduction,
+                company_profile = EXCLUDED.company_profile,
+                activities = EXCLUDED.activities,
+                conclusion = EXCLUDED.conclusion,
+                is_user_edited = TRUE,
+                updated_at = now()
+            "#,
+            report_id,
+            updated.cover,
+            updated.introduction,
+            updated.company_profile,
+            updated.activities,
+            updated.conclusion
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(updated)
+    }
+
+    pub async fn create_logbook_entry(
+        pool: &Pool<Postgres>,
+        report_id: Uuid,
+        req: LogbookEntryCreate,
+    ) -> Result<LogbookEntry, sqlx::Error> {
+        let id = Uuid::new_v4();
+        let now = Utc::now();
+
+        sqlx::query!(
+            r#"
+            INSERT INTO report_logbook_entries (
+                id, report_id, entry_date, activity_title, tasks_performed,
+                tools_technologies, problems_encountered, solutions_applied,
+                skills_learned, evidence_notes, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+            "#,
+            id,
+            report_id,
+            req.entry_date,
+            req.activity_title,
+            req.tasks_performed,
+            req.tools_technologies,
+            req.problems_encountered,
+            req.solutions_applied,
+            req.skills_learned,
+            req.evidence_notes,
+            now
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(LogbookEntry {
+            id,
+            report_id,
+            entry_date: req.entry_date,
+            activity_title: req.activity_title,
+            tasks_performed: req.tasks_performed,
+            tools_technologies: req.tools_technologies,
+            problems_encountered: req.problems_encountered,
+            solutions_applied: req.solutions_applied,
+            skills_learned: req.skills_learned,
+            evidence_notes: req.evidence_notes,
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
+    pub async fn list_logbook_entries(
+        pool: &Pool<Postgres>,
+        report_id: Uuid,
+    ) -> Result<Vec<LogbookEntry>, sqlx::Error> {
+        let rows = sqlx::query_as!(
+            LogbookEntry,
+            r#"
+            SELECT id, report_id, entry_date, activity_title, tasks_performed,
+                   tools_technologies, problems_encountered, solutions_applied,
+                   skills_learned, evidence_notes, created_at, updated_at
+            FROM report_logbook_entries
+            WHERE report_id = $1
+            ORDER BY entry_date ASC, created_at ASC
+            "#,
+            report_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    pub async fn delete_logbook_entry(
+        pool: &Pool<Postgres>,
+        report_id: Uuid,
+        entry_id: Uuid,
+    ) -> Result<bool, sqlx::Error> {
+        let res = sqlx::query!(
+            r#"
+            DELETE FROM report_logbook_entries
+            WHERE id = $1 AND report_id = $2
+            "#,
+            entry_id,
+            report_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(res.rows_affected() > 0)
     }
 
     pub async fn save_file_entry(

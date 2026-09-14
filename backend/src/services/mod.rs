@@ -7,6 +7,7 @@ pub mod llm;
 pub mod oauth;
 pub mod payment;
 pub mod preview;
+pub mod search;
 
 pub use captcha::*;
 pub use cdn::*;
@@ -17,3 +18,5 @@ pub use llm::*;
 pub use oauth::*;
 pub use payment::*;
 pub use preview::*;
+pub use search::*;
+

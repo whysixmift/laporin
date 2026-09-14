@@ -56,6 +56,41 @@ export interface GeneratedSections {
   company_profile: string
   activities: string
   conclusion: string
+  is_user_edited?: boolean
+}
+
+export interface GeneratedSectionsUpdate {
+  cover?: string
+  introduction?: string
+  company_profile?: string
+  activities?: string
+  conclusion?: string
+}
+
+export interface LogbookEntry {
+  id: string
+  report_id: string
+  entry_date: string
+  activity_title: string
+  tasks_performed: string
+  tools_technologies?: string | null
+  problems_encountered?: string | null
+  solutions_applied?: string | null
+  skills_learned?: string | null
+  evidence_notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LogbookEntryCreate {
+  entry_date: string
+  activity_title: string
+  tasks_performed: string
+  tools_technologies?: string
+  problems_encountered?: string
+  solutions_applied?: string
+  skills_learned?: string
+  evidence_notes?: string
 }
 
 export interface Report {
@@ -69,6 +104,7 @@ export interface Report {
   research_facts?: ResearchFact[]
   generated_sections?: GeneratedSections
   generated_doc_path?: string | null
+  logbook_count?: number
 }
 
 export interface ReportCreate {
