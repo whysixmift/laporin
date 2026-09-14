@@ -165,7 +165,14 @@ pub async fn google_callback_handler(
         .max_age(time::Duration::hours(state.config.session_expiry_hours))
         .build();
 
-    let mut response = (StatusCode::OK, Json(json!({ "message": "OK" }))).into_response();
+    let mut response = (
+        StatusCode::OK,
+        Json(LoginResponse {
+            user_id: user.id,
+            expires_at,
+        }),
+    )
+        .into_response();
     response
         .headers_mut()
         .insert(header::SET_COOKIE, cookie.to_string().parse().unwrap());

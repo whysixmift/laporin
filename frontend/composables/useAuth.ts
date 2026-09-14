@@ -91,8 +91,10 @@ export const useAuth = () => {
   }
 
   const handleGoogleCallback = async (code: string, state?: string): Promise<void> => {
-    await api.post('/auth/google/callback', { code, state })
-    // If successful, set initialized state and redirect
+    const res = await api.post<LoginResponse>('/auth/google/callback', { code, state })
+    if (res && res.user_id) {
+      setAuth(res.user_id, '', res.expires_at)
+    }
     authState.value.isInitialized = true
   }
 

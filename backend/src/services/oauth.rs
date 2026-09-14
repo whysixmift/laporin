@@ -10,10 +10,11 @@ pub struct OAuthService {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct GoogleUserInfo {
+    #[serde(alias = "id", alias = "sub")]
     pub sub: String,
     pub email: String,
     #[serde(default)]
-    pub email_verified: Option<bool>,
+    pub email_verified: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
@@ -54,7 +55,7 @@ impl OAuthService {
                 return Ok(GoogleUserInfo {
                     sub: format!("google-sub-{}", suffix),
                     email: format!("{}@gmail.com", suffix),
-                    email_verified: Some(true),
+                    email_verified: Some(serde_json::Value::Bool(true)),
                 });
             }
         }
@@ -67,14 +68,21 @@ impl OAuthService {
             ("grant_type", "authorization_code"),
         ];
 
-        let token_resp = self
+        let resp = self
             .client
             .post("https://oauth2.googleapis.com/token")
             .form(&params)
             .send()
-            .await?
-            .json::<GoogleTokenResponse>()
             .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            tracing::error!("Google OAuth token exchange failed: status={} body={}", status, body);
+            return Err(format!("Google token exchange failed ({}): {}", status, body).into());
+        }
+
+        let token_resp = resp.json::<GoogleTokenResponse>().await?;
 
         if let Some(id_token) = token_resp.id_token {
             // Verify id_token with Google tokeninfo endpoint
@@ -90,8 +98,19 @@ impl OAuthService {
                 .await?;
 
             return Ok(user_info);
+        } else if let Some(access_token) = token_resp.access_token {
+            let user_info = self
+                .client
+                .get("https://www.googleapis.com/oauth2/v3/userinfo")
+                .bearer_auth(access_token)
+                .send()
+                .await?
+                .json::<GoogleUserInfo>()
+                .await?;
+
+            return Ok(user_info);
         }
 
-        Err("Failed to obtain ID token from Google".into())
+        Err("Failed to obtain ID token or access token from Google".into())
     }
 }
