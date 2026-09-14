@@ -30,6 +30,7 @@ const { isAuthenticated } = useAuth()
               to="/reports/new"
               size="lg"
               variant="primary"
+              class="w-full sm:w-auto justify-center"
             >
               <template #leading>
                 <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
@@ -44,6 +45,7 @@ const { isAuthenticated } = useAuth()
               to="/register"
               size="lg"
               variant="primary"
+              class="w-full sm:w-auto justify-center"
             >
               Mulai Susun Laporan
             </BaseButton>
@@ -52,20 +54,21 @@ const { isAuthenticated } = useAuth()
               to="#cara-kerja"
               size="lg"
               variant="subtle"
+              class="w-full sm:w-auto justify-center"
             >
               Lihat Alur Kerja
             </BaseButton>
           </div>
 
-          <div class="flex items-center gap-6 pt-4 text-xs text-ink-muted border-t border-border-subtle">
+          <div class="flex flex-wrap items-center gap-2 sm:gap-4 pt-4 text-xs text-ink-muted border-t border-border-subtle">
             <div class="flex items-center gap-1.5">
               <span class="font-bold text-ink-secondary font-mono">Rp15.000</span>
               <span>/ file DOCX</span>
             </div>
             <span>·</span>
             <div>Tanpa langganan bulanan</div>
-            <span>·</span>
-            <div>Pratinjau gratis sebelum bayar</div>
+            <span class="hidden sm:inline">·</span>
+            <div class="w-full sm:w-auto">Pratinjau gratis sebelum bayar</div>
           </div>
         </div>
 

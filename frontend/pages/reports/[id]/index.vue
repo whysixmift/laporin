@@ -324,7 +324,7 @@ const handleDownloadDocx = async () => {
         </h1>
       </div>
 
-      <div class="flex items-center gap-3 shrink-0">
+      <div class="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap">
         <BaseBadge v-if="report" :status="report.status" size="md" />
 
         <!-- Admin Quick Unlock Button -->
@@ -377,17 +377,18 @@ const handleDownloadDocx = async () => {
     <template v-else-if="report">
       <!-- 1. DRAFT STATE -->
       <div v-if="report.status === 'draft'" class="space-y-6">
-        <div class="p-6 bg-surface rounded-xl border border-border space-y-6">
+        <div class="p-5 sm:p-6 bg-surface rounded-xl border border-border space-y-6">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-            <div>
-              <h2 class="text-lg font-bold text-ink-primary">Draf Laporan Disimpan</h2>
+            <div class="space-y-1">
+              <h2 class="text-base sm:text-lg font-bold text-ink-primary">Draf Laporan Disimpan</h2>
               <p class="text-xs text-ink-secondary">Data siswa dan kegiatan PKL telah tersimpan. Mulai riset untuk mengumpulkan profil resmi perusahaan.</p>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
               <BaseButton
                 variant="secondary"
                 size="md"
+                class="w-full sm:w-auto justify-center"
                 @click="handleOpenEditModal"
               >
                 <template #leading>
@@ -401,6 +402,7 @@ const handleDownloadDocx = async () => {
               <BaseButton
                 variant="primary"
                 size="lg"
+                class="w-full sm:w-auto justify-center"
                 :loading="isJobProcessing"
                 @click="handleStartResearch"
               >
@@ -416,7 +418,7 @@ const handleDownloadDocx = async () => {
           </div>
 
           <!-- Data Summary -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 text-xs">
             <div class="p-4 bg-surface-subtle rounded-lg border border-border-subtle space-y-3">
               <span class="font-mono text-[10px] uppercase tracking-wider text-accent-400 font-bold">Identitas Siswa</span>
               <div class="space-y-1.5">
@@ -447,7 +449,7 @@ const handleDownloadDocx = async () => {
       </div>
 
       <!-- 2. RESEARCHING STATE -->
-      <div v-else-if="report.status === 'researching'" class="p-8 bg-surface rounded-xl border border-ochre-500/30 text-center space-y-4">
+      <div v-else-if="report.status === 'researching'" class="p-6 sm:p-8 bg-surface rounded-xl border border-ochre-500/30 text-center space-y-4">
         <div class="w-12 h-12 rounded-full bg-ochre-500/10 border border-ochre-500/30 mx-auto flex items-center justify-center text-ochre-400">
           <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -456,7 +458,7 @@ const handleDownloadDocx = async () => {
         </div>
 
         <div class="space-y-1">
-          <h3 class="text-lg font-bold text-ink-primary">
+          <h3 class="text-base sm:text-lg font-bold text-ink-primary">
             Menelusuri Informasi Resmi Perusahaan
           </h3>
           <p class="text-xs text-ink-secondary max-w-md mx-auto leading-relaxed">
@@ -473,12 +475,12 @@ const handleDownloadDocx = async () => {
 
       <!-- 3. RESEARCH COMPLETED STATE -->
       <div v-else-if="report.status === 'research_completed'" class="space-y-6">
-        <div class="p-6 bg-surface rounded-xl border border-border space-y-6">
+        <div class="p-5 sm:p-6 bg-surface rounded-xl border border-border space-y-6">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
             <div class="space-y-1">
               <div class="flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-400" />
-                <h2 class="text-lg font-bold text-ink-primary">Riset Perusahaan Berhasil</h2>
+                <h2 class="text-base sm:text-lg font-bold text-ink-primary">Riset Perusahaan Berhasil</h2>
               </div>
               <p class="text-xs text-ink-secondary">
                 Fakta terverifikasi telah siap. Lanjutkan untuk menyusun seluruh bab laporan akademik secara otomatis.
@@ -488,6 +490,7 @@ const handleDownloadDocx = async () => {
             <BaseButton
               variant="primary"
               size="lg"
+              class="w-full sm:w-auto justify-center"
               :loading="isJobProcessing"
               @click="handleStartGeneration"
             >
@@ -520,7 +523,7 @@ const handleDownloadDocx = async () => {
       </div>
 
       <!-- 4. GENERATING STATE -->
-      <div v-else-if="report.status === 'generating'" class="p-8 bg-surface rounded-xl border border-sky-500/30 text-center space-y-4">
+      <div v-else-if="report.status === 'generating'" class="p-6 sm:p-8 bg-surface rounded-xl border border-sky-500/30 text-center space-y-4">
         <div class="w-12 h-12 rounded-full bg-sky-500/10 border border-sky-500/30 mx-auto flex items-center justify-center text-sky-400">
           <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -529,7 +532,7 @@ const handleDownloadDocx = async () => {
         </div>
 
         <div class="space-y-1">
-          <h3 class="text-lg font-bold text-ink-primary">
+          <h3 class="text-base sm:text-lg font-bold text-ink-primary">
             Menyusun Bab & Format Dokumen
           </h3>
           <p class="text-xs text-ink-secondary max-w-md mx-auto leading-relaxed">
@@ -545,7 +548,7 @@ const handleDownloadDocx = async () => {
       </div>
 
       <!-- 5. PREVIEW READY & PAYMENT PENDING STATES (PAYWALL VIEW) -->
-      <div v-else-if="['preview_ready', 'payment_pending'].includes(report.status)" class="space-y-8">
+      <div v-else-if="['preview_ready', 'payment_pending'].includes(report.status)" class="space-y-6 sm:space-y-8">
         <!-- Paywall Callout -->
         <PaywallOverlay
           :report-id="report.id"
@@ -554,14 +557,14 @@ const handleDownloadDocx = async () => {
         />
 
         <!-- Payment pending refresh status -->
-        <div v-if="report.status === 'payment_pending'" class="p-4 bg-ochre-500/10 border border-ochre-500/30 rounded-lg flex items-center justify-between text-xs text-ochre-300">
+        <div v-if="report.status === 'payment_pending'" class="p-4 bg-ochre-500/10 border border-ochre-500/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-ochre-300">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-ochre-400 animate-pulse" />
             <span>Menunggu konfirmasi pembayaran otomatis via webhook Mayar...</span>
           </div>
           <button
             type="button"
-            class="px-3 py-1 rounded bg-ochre-500/20 hover:bg-ochre-500/30 text-ochre-200 font-medium transition-colors"
+            class="px-3 py-1.5 rounded bg-ochre-500/20 hover:bg-ochre-500/30 text-ochre-200 font-medium transition-colors text-center w-full sm:w-auto"
             @click="fetchReportData"
           >
             Periksa Status Sekarang
@@ -576,9 +579,9 @@ const handleDownloadDocx = async () => {
       </div>
 
       <!-- 6. UNLOCKED / PAID STATE -->
-      <div v-else-if="report.status === 'unlocked' || report.status === 'paid'" class="space-y-8">
+      <div v-else-if="report.status === 'unlocked' || report.status === 'paid'" class="space-y-6 sm:space-y-8">
         <!-- Unlocked Celebration Banner -->
-        <div class="p-6 bg-accent-500/10 border border-accent-500/40 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="p-5 sm:p-6 bg-accent-500/10 border border-accent-500/40 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div class="space-y-1">
             <div class="flex items-center gap-2 text-accent-400 font-bold text-sm">
               <svg class="w-5 h-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
@@ -594,6 +597,7 @@ const handleDownloadDocx = async () => {
           <BaseButton
             variant="primary"
             size="lg"
+            class="w-full sm:w-auto justify-center"
             :loading="isDownloading"
             @click="handleDownloadDocx"
           >
@@ -614,7 +618,7 @@ const handleDownloadDocx = async () => {
       </div>
 
       <!-- 7. FAILED STATE -->
-      <div v-else-if="report.status === 'failed'" class="p-8 bg-surface rounded-xl border border-danger-500/30 text-center space-y-4">
+      <div v-else-if="report.status === 'failed'" class="p-6 sm:p-8 bg-surface rounded-xl border border-danger-500/30 text-center space-y-4">
         <div class="w-12 h-12 rounded-full bg-danger-500/10 border border-danger-500/30 mx-auto flex items-center justify-center text-danger-400">
           <svg class="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -622,7 +626,7 @@ const handleDownloadDocx = async () => {
         </div>
 
         <div class="space-y-1">
-          <h3 class="text-lg font-bold text-ink-primary">
+          <h3 class="text-base sm:text-lg font-bold text-ink-primary">
             Terjadi Kendala pada Proses
           </h3>
           <p class="text-xs text-ink-secondary max-w-md mx-auto leading-relaxed">
@@ -630,11 +634,11 @@ const handleDownloadDocx = async () => {
           </p>
         </div>
 
-        <div class="flex items-center justify-center gap-3 pt-2">
-          <BaseButton variant="subtle" @click="fetchReportData">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 pt-2 w-full max-w-xs mx-auto">
+          <BaseButton variant="subtle" class="w-full sm:w-auto justify-center" @click="fetchReportData">
             Muat Ulang
           </BaseButton>
-          <BaseButton variant="primary" @click="handleStartResearch">
+          <BaseButton variant="primary" class="w-full sm:w-auto justify-center" @click="handleStartResearch">
             Coba Riset Ulang
           </BaseButton>
         </div>

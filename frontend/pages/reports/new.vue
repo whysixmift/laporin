@@ -145,7 +145,7 @@ const handleSubmit = async () => {
     </div>
 
     <!-- Stepper Navigation -->
-    <div class="grid grid-cols-4 gap-2 text-xs">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
       <div
         v-for="s in [
           { num: 1, label: 'Data Siswa' },
@@ -155,7 +155,7 @@ const handleSubmit = async () => {
         ]"
         :key="s.num"
         :class="[
-          'p-3 rounded-lg border flex flex-col gap-1 transition-colors',
+          'p-2.5 sm:p-3 rounded-lg border flex flex-col gap-0.5 sm:gap-1 transition-colors',
           step === s.num
             ? 'bg-surface-elevated border-accent-500/50 text-ink-primary'
             : step > s.num
@@ -163,8 +163,8 @@ const handleSubmit = async () => {
               : 'bg-surface-subtle border-border-subtle text-ink-muted'
         ]"
       >
-        <span class="font-mono text-[10px] uppercase font-bold text-accent-400">Langkah 0{{ s.num }}</span>
-        <span class="font-medium truncate">{{ s.label }}</span>
+        <span class="font-mono text-[9px] sm:text-[10px] uppercase font-bold text-accent-400">Langkah 0{{ s.num }}</span>
+        <span class="font-medium text-xs truncate">{{ s.label }}</span>
       </div>
     </div>
 
@@ -174,7 +174,7 @@ const handleSubmit = async () => {
     </BaseAlert>
 
     <!-- STEP 1: Student Information -->
-    <div v-if="step === 1" class="p-6 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
+    <div v-if="step === 1" class="p-5 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
       <div class="space-y-1 pb-4 border-b border-border">
         <h2 class="text-base font-semibold text-ink-primary">1. Data Siswa / Mahasiswa</h2>
         <p class="text-xs text-ink-secondary">Informasi ini dicantumkan pada lembar sampul dan pengesahan laporan.</p>
@@ -219,15 +219,15 @@ const handleSubmit = async () => {
         />
       </div>
 
-      <div class="pt-4 flex justify-end">
-        <BaseButton variant="primary" @click="handleNext">
+      <div class="pt-4 flex flex-col sm:flex-row justify-end">
+        <BaseButton variant="primary" class="w-full sm:w-auto justify-center" @click="handleNext">
           Lanjut ke Data Tempat PKL
         </BaseButton>
       </div>
     </div>
 
     <!-- STEP 2: Company & Supervisors -->
-    <div v-if="step === 2" class="p-6 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
+    <div v-if="step === 2" class="p-5 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
       <div class="space-y-1 pb-4 border-b border-border">
         <h2 class="text-base font-semibold text-ink-primary">2. Tempat PKL & Pembimbing</h2>
         <p class="text-xs text-ink-secondary">Nama instansi/perusahaan akan diteliti secara otomatis untuk profil perusahaan.</p>
@@ -295,18 +295,18 @@ const handleSubmit = async () => {
         />
       </div>
 
-      <div class="pt-4 flex justify-between">
-        <BaseButton variant="subtle" @click="handlePrev">
+      <div class="pt-4 flex flex-col-reverse sm:flex-row justify-between gap-3">
+        <BaseButton variant="subtle" class="w-full sm:w-auto justify-center" @click="handlePrev">
           Kembali
         </BaseButton>
-        <BaseButton variant="primary" @click="handleNext">
+        <BaseButton variant="primary" class="w-full sm:w-auto justify-center" @click="handleNext">
           Lanjut ke Jurnal Kegiatan
         </BaseButton>
       </div>
     </div>
 
     <!-- STEP 3: Real Activities Log -->
-    <div v-if="step === 3" class="p-6 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
+    <div v-if="step === 3" class="p-5 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
       <div class="space-y-1 pb-4 border-b border-border">
         <h2 class="text-base font-semibold text-ink-primary">3. Jurnal Kegiatan & Tanggung Jawab Nyata</h2>
         <p class="text-xs text-ink-secondary leading-relaxed">
@@ -329,18 +329,18 @@ const handleSubmit = async () => {
         />
       </div>
 
-      <div class="pt-4 flex justify-between">
-        <BaseButton variant="subtle" @click="handlePrev">
+      <div class="pt-4 flex flex-col-reverse sm:flex-row justify-between gap-3">
+        <BaseButton variant="subtle" class="w-full sm:w-auto justify-center" @click="handlePrev">
           Kembali
         </BaseButton>
-        <BaseButton variant="primary" @click="handleNext">
+        <BaseButton variant="primary" class="w-full sm:w-auto justify-center" @click="handleNext">
           Review & Konfirmasi Draf
         </BaseButton>
       </div>
     </div>
 
     <!-- STEP 4: Review & Finalize Draft -->
-    <div v-if="step === 4" class="p-6 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
+    <div v-if="step === 4" class="p-5 sm:p-8 rounded-xl bg-surface border border-border space-y-6">
       <div class="space-y-1 pb-4 border-b border-border">
         <h2 class="text-base font-semibold text-ink-primary">4. Konfirmasi Data Laporan</h2>
         <p class="text-xs text-ink-secondary">Periksa kembali data Anda sebelum menyimpan draf dan memulai proses riset.</p>
@@ -356,36 +356,45 @@ const handleSubmit = async () => {
 
         <!-- Summary Card -->
         <div class="p-4 bg-surface-subtle rounded-lg border border-border-subtle space-y-3 text-xs">
-          <div class="grid grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
             <span class="text-ink-muted">Siswa</span>
-            <span class="col-span-2 text-ink-primary font-medium">{{ student.full_name }} ({{ student.student_id }})</span>
+            <span class="sm:col-span-2 text-ink-primary font-medium">: {{ student.full_name }} ({{ student.student_id }})</span>
           </div>
-          <div class="grid grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
             <span class="text-ink-muted">Sekolah / Kampus</span>
-            <span class="col-span-2 text-ink-primary">{{ student.school }}</span>
+            <span class="sm:col-span-2 text-ink-primary">: {{ student.school }}</span>
           </div>
-          <div class="grid grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
             <span class="text-ink-muted">Tempat PKL</span>
-            <span class="col-span-2 text-ink-primary font-medium">{{ internship.company_name }}</span>
+            <span class="sm:col-span-2 text-ink-primary font-medium">: {{ internship.company_name }}</span>
           </div>
-          <div class="grid grid-cols-3 gap-2">
-            <span class="text-ink-muted">Kegiatan Nyata</span>
-            <span class="col-span-2 text-ink-secondary line-clamp-3">{{ internship.description }}</span>
+          <div v-if="internship.department" class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
+            <span class="text-ink-muted">Divisi</span>
+            <span class="sm:col-span-2 text-ink-secondary">: {{ internship.department }}</span>
+          </div>
+          <div v-if="internship.role" class="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-2">
+            <span class="text-ink-muted">Posisi</span>
+            <span class="sm:col-span-2 text-ink-secondary">: {{ internship.role }}</span>
+          </div>
+          <div v-if="internship.description" class="pt-2 border-t border-border-subtle">
+            <span class="text-ink-muted block mb-1">Catatan Kegiatan:</span>
+            <p class="text-ink-secondary whitespace-pre-line line-clamp-3">{{ internship.description }}</p>
           </div>
         </div>
       </div>
 
-      <div class="pt-4 flex justify-between">
-        <BaseButton variant="subtle" @click="handlePrev">
+      <div class="pt-4 flex flex-col-reverse sm:flex-row justify-between gap-3">
+        <BaseButton variant="subtle" class="w-full sm:w-auto justify-center" @click="handlePrev">
           Kembali
         </BaseButton>
         <BaseButton
           variant="primary"
           size="lg"
+          class="w-full sm:w-auto justify-center"
           :loading="loading"
           @click="handleSubmit"
         >
-          Simpan Draf & Mulai Riset
+          Simpan Draf Laporan PKL
         </BaseButton>
       </div>
     </div>
